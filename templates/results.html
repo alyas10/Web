@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}Результаты - ML Network Security{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="page-header-content">
+            <div>
+                <h2 class="page-title">Результаты анализа</h2>
+                <p class="page-subtitle">Метрики качества и визуализация результатов модели</p>
+            </div>
+        </div>
+        <button class="btn btn-primary">
+            <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Запустить анализ
+        </button>
+    </div>
+
+    <div class="page-content">
+        <!-- Key Metrics -->
+        <div>
+            <h3 class="section-title">Ключевые метрики</h3>
+            <div class="metrics-grid">
+                {% for metric in metrics %}
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-icon-wrapper bg-{{ metric.color }}-light">
+                            <svg class="metric-icon text-{{ metric.color }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                {% if metric.icon == 'target' %}
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                {% elif metric.icon == 'trending-up' %}
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                {% elif metric.icon == 'zap' %}
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                {% elif metric.icon == 'clock' %}
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                {% endif %}
+                            </svg>
+                        </div>
+                        <div class="metric-content">
+                            <p class="metric-label">{{ metric.label }}</p>
+                            <p class="metric-value">{{ metric.value }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Class Details Table -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Детализация по классам</h3>
+                <p class="card-subtitle">Метрики качества для каждого типа атаки</p>
+            </div>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Класс атаки</th>
+                            <th>Precision</th>
+                            <th>Recall</th>
+                            <th>F1-Score</th>
+                            <th>Support</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in class_metrics %}
+                        <tr>
+                            <td>
+                                <div class="flex-row">
+                                    <div class="status-dot {{ 'bg-red' if row.type == 'attack' else 'bg-green' }}"></div>
+                                    <span class="font-medium">{{ row.class }}</span>
+                                </div>
+                            </td>
+                            <td class="font-mono">{{ row.precision }}</td>
+                            <td class="font-mono">{{ row.recall }}</td>
+                            <td class="font-mono">{{ row.f1_score }}</td>
+                            <td class="font-mono text-secondary">{{ row.support }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Visualizations -->
+        <div>
+            <h3 class="section-title">Визуализация результатов</h3>
+            <div class="viz-grid">
+                <!-- Confusion Matrix -->
+                <div class="card">
+                    <h4 class="card-title mb-4">Confusion Matrix</h4>
+                    <div class="viz-placeholder">
+                        <div class="viz-icon-wrapper bg-blue-light">
+                            <svg class="viz-icon text-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path>
+                            </svg>
+                        </div>
+                        <p class="viz-title">Матрица ошибок</p>
+                        <p class="viz-subtitle">Визуализация классификации</p>
+                    </div>
+                </div>
+
+                <!-- ROC Curve -->
+                <div class="card">
+                    <h4 class="card-title mb-4">ROC Curve</h4>
+                    <div class="viz-placeholder">
+                        <div class="viz-icon-wrapper bg-purple-light">
+                            <svg class="viz-icon text-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
+                            </svg>
+                        </div>
+                        <p class="viz-title">ROC-кривая</p>
+                        <p class="viz-subtitle">AUC = 0.9823</p>
+                    </div>
+                </div>
+
+                <!-- Feature Importance -->
+                <div class="card card-full">
+                    <h4 class="card-title mb-4">Feature Importance</h4>
+                    <div class="viz-placeholder viz-horizontal">
+                        <div class="viz-icon-wrapper bg-green-light">
+                            <svg class="viz-icon text-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                        <p class="viz-title">Важность признаков</p>
+                        <p class="viz-subtitle">Топ-15 наиболее значимых признаков</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 1.5rem; }
+.metric-card { 
+    background: #1f2937; 
+    border: 1px solid #374151; 
+    border-radius: 0.75rem; 
+    padding: 1.5rem;
+    transition: border-color 0.2s;
+}
+.metric-card:hover { border-color: #4b5563; }
+.metric-header { display: flex; gap: 1rem; }
+.metric-icon-wrapper {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.metric-icon { width: 1.5rem; height: 1.5rem; }
+.metric-label { font-size: 0.875rem; color: #9ca3af; }
+.metric-value { font-size: 1.5rem; font-weight: 700; color: white; margin-top: 0.25rem; }
+.viz-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+.card-full { grid-column: span 2; }
+.viz-placeholder {
+    aspect-ratio: 1;
+    background: #111827;
+    border: 1px solid #374151;
+    border-radius: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.viz-horizontal {
+    aspect-ratio: auto;
+    height: 16rem;
+}
+.viz-icon-wrapper {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.75rem;
+}
+.viz-icon { width: 2rem; height: 2rem; }
+.viz-title { font-size: 0.875rem; color: #9ca3af; }
+.viz-subtitle { font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; }
+.status-dot {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+}
+</style>
+{% endblock %}

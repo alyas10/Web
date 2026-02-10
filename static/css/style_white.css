@@ -1,0 +1,858 @@
+/* CSS Variables — СВЕТЛАЯ ТЕМА (БЕЛО-ФИОЛЕТОВАЯ) */
+:root {
+  --primary-dark: #ffffff;          /* фон страницы — белый */
+  --secondary-dark: #f8f5ff;        /* фон хедера — очень светлый фиолетовый */
+  --accent-blue: #4f46e5;           /* индиго (как в Tailwind) */
+  --accent-orange: #f97316;
+  --accent-red: #dc2626;
+  --accent-green: #10b981;
+  --accent-purple: #a855f7;         /* фиолетовый акцент */
+  --accent-yellow: #eab308;
+  --text-primary: #1e1b4b;          /* тёмно-фиолетовый текст (вместо чёрного) */
+  --text-secondary: #7c3aed;        /* фиолетовый для второстепенного текста */
+  --border-color: #e0d6f0;          /* светло-фиолетовая граница */
+  --card-bg: #f5f3ff;               /* светло-фиолетовый фон карточек */
+  --sidebar-bg: #faf5ff;            /* фон sidebar — чуть светлее карточек */
+}
+
+/* Reset and Base Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  background-color: var(--primary-dark);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+code, pre, .font-mono {
+  font-family: 'Roboto Mono', 'Courier New', monospace;
+}
+
+/* Layout */
+.app-container {
+  display: flex;
+  height: 100vh;
+  transition: transform 0.3s ease;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 250px; /* = 16rem */
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease;
+  z-index: 10;
+}
+
+.sidebar-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent-blue);
+}
+
+.sidebar-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 1rem;
+}
+
+.sidebar-nav ul {
+  list-style: none;
+}
+
+.sidebar-nav li {
+  margin-bottom: 0.5rem;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+
+.nav-link:hover {
+  background: var(--card-bg);
+  color: var(--text-primary);
+}
+
+.nav-link.active {
+  background: var(--accent-blue);
+  color: white;
+}
+
+.nav-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.sidebar-footer {
+  padding: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+.user-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.user-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.user-role {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Page Structure */
+.page-container {
+  height: 100%;
+  background: var(--primary-dark);
+}
+
+.page-header {
+  border-bottom: 1px solid var(--border-color);
+  background: var(--secondary-dark);
+  padding: 1.5rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.page-header-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.page-icon-wrapper {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.page-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+.page-content {
+  padding: 2rem;
+}
+
+/* Cards */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.card-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  background: rgba(245, 243, 255, 0.5); /* светло-фиолетовый полупрозрачный */
+}
+
+.card-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.card-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+.card-content {
+  padding: 1.5rem;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--accent-blue);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #4338ca;
+}
+
+.btn-secondary {
+  background: var(--border-color);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+  background: #d1c4e9;
+}
+
+.btn-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* Input Fields */
+.input-field {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  background: var(--border-color);
+  border: 1px solid #d1c4e9;
+  border-radius: 0.5rem;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+}
+
+/* Tables */
+.table-container {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table thead tr {
+  background: var(--border-color);
+}
+
+.data-table th {
+  padding: 0.75rem 1.5rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.data-table tbody tr {
+  background: var(--card-bg);
+  transition: background 0.2s;
+}
+
+.data-table tbody tr:nth-child(even) {
+  background: var(--sidebar-bg);
+}
+
+.data-table tbody tr:hover {
+  background: rgba(245, 243, 255, 0.7);
+}
+
+.data-table td {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-green { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+.badge-red { background: rgba(220, 38, 38, 0.2); color: var(--accent-red); }
+.badge-orange { background: rgba(249, 115, 22, 0.2); color: var(--accent-orange); }
+.badge-yellow { background: rgba(234, 179, 8, 0.2); color: var(--accent-yellow); }
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  transition: border-color 0.2s;
+}
+
+.stat-card:hover {
+  border-color: #d1c4e9;
+}
+
+.stat-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.stat-icon-wrapper {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.stat-change {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.stat-change.positive { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+.stat-change.negative { background: rgba(220, 38, 38, 0.2); color: var(--accent-red); }
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.stat-value {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 0.5rem;
+}
+
+/* Grids */
+.grid-2-1 {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.models-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+/* Color Utilities */
+.bg-blue-light { background: rgba(79, 70, 229, 0.15); }
+.bg-red-light { background: rgba(220, 38, 38, 0.15); }
+.bg-green-light { background: rgba(16, 185, 129, 0.15); }
+.bg-purple-light { background: rgba(168, 85, 247, 0.15); }
+.bg-orange-light { background: rgba(249, 115, 22, 0.15); }
+.bg-yellow-light { background: rgba(234, 179, 8, 0.15); }
+.bg-red { background: var(--accent-red); }
+.bg-green { background: var(--accent-green); }
+.bg-orange { background: var(--accent-orange); }
+.bg-yellow { background: var(--accent-yellow); }
+.bg-gray { background: #6b7280; }
+
+.text-blue { color: var(--accent-blue); }
+.text-red { color: var(--accent-red); }
+.text-green { color: var(--accent-green); }
+.text-purple { color: var(--accent-purple); }
+.text-orange { color: var(--accent-orange); }
+.text-secondary { color: var(--text-secondary); }
+
+/* Utility Classes */
+.flex-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.font-mono {
+  font-family: 'Roboto Mono', monospace;
+}
+
+.truncate {
+  max-width: 20rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+/* Threat Distribution */
+.threat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.threat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.threat-info {
+  display: flex;
+  justify-content: space-between;
+}
+
+.threat-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.threat-stats {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.progress-bar {
+  width: 100%;
+  height: 0.5rem;
+  background: var(--border-color);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s;
+}
+
+/* Model Status Cards */
+.model-status-card {
+  background: var(--sidebar-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.status-indicator {
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--accent-green);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.model-status-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.model-status-text {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* Upload Zone */
+.upload-zone {
+  border: 2px dashed #d1c4e9;
+  background: var(--card-bg);
+  border-radius: 0.75rem;
+  padding: 3rem;
+  text-align: center;
+  transition: all 0.2s;
+  cursor: pointer;
+  margin-bottom: 1.5rem;
+}
+
+.upload-zone:hover {
+  border-color: #b39ddb;
+}
+
+.upload-zone.dragging {
+  border-color: var(--accent-blue);
+  background: rgba(79, 70, 229, 0.1);
+}
+
+.upload-icon-wrapper {
+  width: 4rem;
+  height: 4rem;
+  background: rgba(79, 70, 229, 0.15);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.upload-icon {
+  width: 2rem;
+  height: 2rem;
+  color: var(--accent-blue);
+}
+
+.upload-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.upload-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+/* File Status */
+.file-status {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.file-status-icon {
+  width: 3rem;
+  height: 3rem;
+  background: rgba(16, 185, 129, 0.15);
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.file-status-icon svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--accent-green);
+}
+
+.file-info {
+  flex: 1;
+}
+
+.file-name {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.file-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--text-secondary);
+}
+
+.file-details {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+.file-status-badge {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--accent-green);
+}
+
+.table-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* В styles.css */
+.openbtn {
+  position: absolute;
+  top: 16px;
+  left: 260px;
+  background-color: var(--accent-blue);
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 1001;
+}
+
+.openbtn:hover {
+  background-color: #4338ca;
+}
+
+.hamburger-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Состояние: sidebar скрыт */
+.app-container.sidebar-collapsed .sidebar {
+  width: 0;
+  padding: 0;
+  margin: 0;
+  border: none;
+  overflow: hidden;
+}
+
+/* Состояние: main сдвинут */
+.app-container.sidebar-collapsed #main {
+  margin-left: 0;
+  flex: 1;
+}
+
+/* Чтобы main занимал всё пространство при скрытом sidebar */
+#main {
+  flex: 1;
+  overflow: auto;
+  transition: margin-left 0.3s ease;
+}
+
+/* Кнопка сворачивания — в правом верхнем углу sidebar */
+.sidebar .sidebar-toggle-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.5);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all 0.2s;
+  z-index: 1001;
+}
+
+.sidebar .sidebar-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.sidebar .hamburger-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Кнопка "гамбургер" для открытия sidebar (снаружи) */
+.open-sidebar-btn {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  background: var(--accent-blue);
+  color: white;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 999;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+}
+
+.open-sidebar-btn:hover {
+  background: #4338ca;
+}
+
+.open-sidebar-btn .hamburger-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Footer кнопка темы */
+.theme-toggle-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  text-align: left;
+  transition: background 0.2s;
+}
+
+.theme-toggle-btn:hover {
+  background: var(--card-bg);
+  color: var(--text-primary);
+}
+
+.theme-toggle-btn svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+/* === Метрическая карточка (универсальная) === */
+.metric-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  color: var(--text-primary); /* текст по умолчанию */
+}
+
+.metric-card:hover {
+  border-color: var(--accent-blue);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.1);
+}
+
+/* Заголовок метрики (например, "Accuracy") */
+.metric-card .metric-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Значение метрики (например, "96.42%") */
+.metric-card .metric-value {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+/* Опционально: иконка слева */
+.metric-card .metric-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.metric-card .metric-icon svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--text-primary);
+}
+
+/* Если у вас есть цветной блок внутри (как на скриншоте) — сделайте его прозрачным или адаптивным */
+.metric-card .metric-bg {
+  background: rgba(79, 70, 229, 0.15); /* светло-фиолетовый */
+  border-radius: 0.5rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.metric-card .metric-bg .metric-value {
+  color: var(--accent-blue);
+}

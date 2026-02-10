@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ML Network Security{% endblock %}</title>
+    <link id="theme-stylesheet" rel="stylesheet" href="/static/css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+    {% include 'sidebar/sidebar.html' %}
+        <!-- Main Content -->
+        <main id="main" class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+         <script src="{{ url_for('static', filename='js/sidebar.js') }}"></script>
+         <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

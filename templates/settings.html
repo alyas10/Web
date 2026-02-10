@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Настройки - ML Network Security{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="page-header-content">
+            <div>
+                <h2 class="page-title">Настройки</h2>
+                <p class="page-subtitle">Конфигурация системы анализа</p>
+            </div>
+        </div>
+        <button class="btn btn-primary">
+            <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+            </svg>
+            Сохранить изменения
+        </button>
+    </div>
+
+    <div class="page-content settings-content">
+        <!-- General Settings -->
+        <div class="card">
+            <div class="card-header settings-header">
+                <svg class="settings-icon text-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                <h3 class="card-title">Общие настройки</h3>
+            </div>
+            <div class="card-content">
+                <div class="form-group">
+                    <label class="form-label">Имя проекта</label>
+                    <input type="text" value="ML Network Security Project" class="input-field">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Описание проекта</label>
+                    <textarea rows="3" class="input-field">Симулятор для тестирования моделей машинного обучения в области обнаружения и классификации сетевых атак</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Processing -->
+        <div class="card">
+            <div class="card-header settings-header">
+                <svg class="settings-icon text-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path>
+                </svg>
+                <h3 class="card-title">Обработка данных</h3>
+            </div>
+            <div class="card-content">
+                <div class="form-group">
+                    <label class="form-label">Максимальный размер файла (MB)</label>
+                    <input type="number" value="500" class="input-field">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Автоматическая предобработка</label>
+                    <select class="input-field">
+                        <option selected>Включена (рекомендовано)</option>
+                        <option>Отключена</option>
+                    </select>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="normalize" checked>
+                    <label for="normalize">Нормализация признаков</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="balance" checked>
+                    <label for="balance">Балансировка классов</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Model Settings -->
+        <div class="card">
+            <div class="card-header settings-header">
+                <svg class="settings-icon text-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                </svg>
+                <h3 class="card-title">Параметры моделей</h3>
+            </div>
+            <div class="card-content">
+                <div class="form-group">
+                    <label class="form-label">Разделение датасета (Train/Test)</label>
+                    <div class="grid-2">
+                        <div>
+                            <input type="number" value="80" class="input-field">
+                            <p class="input-helper">Train (%)</p>
+                        </div>
+                        <div>
+                            <input type="number" value="20" class="input-field">
+                            <p class="input-helper">Test (%)</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Random State (воспроизводимость)</label>
+                    <input type="number" value="42" class="input-field">
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="crossval" checked>
+                    <label for="crossval">Кросс-валидация (k=5)</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="card">
+            <div class="card-header settings-header">
+                <svg class="settings-icon text-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                </svg>
+                <h3 class="card-title">Уведомления</h3>
+            </div>
+            <div class="card-content">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="notif-complete" checked>
+                    <label for="notif-complete">Уведомлять о завершении анализа</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="notif-threats" checked>
+                    <label for="notif-threats">Уведомлять о критических угрозах</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="notif-errors">
+                    <label for="notif-errors">Уведомлять об ошибках обработки</label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.settings-content { max-width: 64rem; }
+.settings-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(55, 65, 81, 0.3);
+}
+.settings-icon { width: 1.25rem; height: 1.25rem; }
+.form-group { margin-bottom: 1rem; }
+.form-group:last-child { margin-bottom: 0; }
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: white;
+    margin-bottom: 0.5rem;
+}
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+.input-helper {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-top: 0.25rem;
+}
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding-top: 0.5rem;
+}
+.checkbox-group input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 0.25rem;
+    border: 1px solid #4b5563;
+    background: #374151;
+    cursor: pointer;
+}
+.checkbox-group label {
+    font-size: 0.875rem;
+    color: white;
+    cursor: pointer;
+}
+</style>
+{% endblock %}

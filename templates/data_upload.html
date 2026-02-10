@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Загрузка данных - ML Network Security{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="page-header-content">
+            <div>
+                <h2 class="page-title">Загрузка данных</h2>
+                <p class="page-subtitle">Загрузите сетевые данные для анализа</p>
+            </div>
+        </div>
+        <button class="btn btn-primary">
+            <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Запустить анализ
+        </button>
+    </div>
+
+    <div class="page-content">
+        <!-- Upload Zone -->
+        <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" id="uploadForm">
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-icon-wrapper">
+                    <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                </div>
+                <h3 class="upload-title">Перетащите файлы сюда или нажмите для выбора</h3>
+                <p class="upload-subtitle">Поддерживаемые форматы: .csv, .pcap, .pcapng</p>
+                <label class="btn btn-secondary">
+                    Выбрать файл
+                    <input type="file" name="file" id="fileInput" accept=".csv,.pcap,.pcapng" style="display: none;">
+                </label>
+            </div>
+        </form>
+
+        {% if uploaded_file %}
+        <!-- File Status -->
+        <div class="card">
+            <div class="file-status">
+                <div class="file-status-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="file-info">
+                    <div class="file-name">
+                        <svg class="file-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <span>{{ uploaded_file.name }}</span>
+                    </div>
+                    <p class="file-details">
+                        Размер: {{ "%.2f"|format(uploaded_file.size / (1024*1024)) }} MB • Успешно загружено
+                    </p>
+                </div>
+                <div class="file-status-badge">Готово</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Data Preview -->
+        {% if uploaded_file or sample_data %}
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Предпросмотр данных</h3>
+                <p class="card-subtitle">Первые 6 строк загруженного датасета</p>
+            </div>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Timestamp</th>
+                            <th>Source IP</th>
+                            <th>Dest IP</th>
+                            <th>Protocol</th>
+                            <th>Port</th>
+                            <th>Bytes</th>
+                            <th>Label</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in sample_data %}
+                        <tr>
+                            <td class="font-mono text-secondary">{{ row.id }}</td>
+                            <td class="font-mono">{{ row.timestamp }}</td>
+                            <td class="font-mono">{{ row.src_ip }}</td>
+                            <td class="font-mono">{{ row.dst_ip }}</td>
+                            <td class="font-mono">{{ row.protocol }}</td>
+                            <td class="font-mono">{{ row.port }}</td>
+                            <td class="font-mono">{{ row.bytes }}</td>
+                            <td>
+                                {% if row.label == 'Benign' %}
+                                <span class="badge badge-green">{{ row.label }}</span>
+                                {% elif row.label == 'DoS' %}
+                                <span class="badge badge-red">{{ row.label }}</span>
+                                {% elif row.label == 'Intrusion' %}
+                                <span class="badge badge-orange">{{ row.label }}</span>
+                                {% else %}
+                                <span class="badge badge-yellow">{{ row.label }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+const uploadForm = document.getElementById('uploadForm');
+
+// Drag and drop
+uploadZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadZone.classList.add('dragging');
+});
+
+uploadZone.addEventListener('dragleave', () => {
+    uploadZone.classList.remove('dragging');
+});
+
+uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove('dragging');
+    if (e.dataTransfer.files.length > 0) {
+        fileInput.files = e.dataTransfer.files;
+        uploadForm.submit();
+    }
+});
+
+// File input change
+fileInput.addEventListener('change', () => {
+    if (fileInput.files.length > 0) {
+        uploadForm.submit();
+    }
+});
+</script>
+{% endblock %}
