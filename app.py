@@ -1,14 +1,25 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import os
 from model_manager.model_manager import ModelManager
+from model_manager.model_utils  import NumericFeatureSelector
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500 MB
 
+# Тест загрузки пайплайна
+try:
+    import joblib
+    pipe = joblib.load("models/lightgbm/test/full_pipeline.pkl")
+    print("✅ Pipeline loaded OK")
+    print("Pipeline steps:", [step[0] for step in pipe.steps])
+except Exception as e:
+    print("❌ Pipeline load failed:", e)
+
 # Инициализируем менеджер моделей
 model_manager = ModelManager(models_root="models")
+#model_manager.clear_cache()
 
 # Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -145,30 +156,56 @@ def settings():
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    """
-    Выполняет предсказание для выбранной модели.
-    Пока что без загрузки данных – вызываем модель с "пустыми" признаками.
-    """
-    selected_model_id = request.form.get('selected_model', 'lightgbm')
-    # env – пока всегда test (позже можно добавить выбор)
-    env = 'test'
+    # Проверяем, пришёл ли JSON
+    if request.is_json:
+        data = request.get_json()
+        selected_model_id = data.get('algo', 'lightgbm')
+        env = data.get('env', 'test')
+        # params = data.get('params', {})
+    else:
+        # Если не JSON — читаем как form-data (старый способ)
+        selected_model_id = request.form.get('selected_model', 'lightgbm')
+        env = request.form.get('env', 'test')
 
     # Проверим, поддерживает ли ModelManager эту модель
     if selected_model_id not in model_manager.file_map:
         return jsonify({"error": f"Модель '{selected_model_id}' не поддерживается."}), 400
 
     try:
-        # ВНИМАНИЕ: на данном этапе у нас нет данных, чтобы передать в predict()
-        # Пока что вызовем с "пустым" DataFrame (только нужные колонки)
-        # Заглушка: пустой DataFrame с нужными колонками (например, 60 признаков)
-        # В реальности: это будет результат DataLoaderFactory.process_file()
+        # Загрузим bundle, чтобы получить feature_names
+       # bundle = model_manager._get_or_load_bundle(algo=selected_model_id, env=env)
+        #feature_names = bundle.feature_names
+
+        # Создаём DataFrame с нужными колонками, заполненный нулями
+        import  numpy as np
+       # dummy_data = pd.DataFrame([0.0] * len(feature_names)).T
+        #dummy_data = np.zeros((1, 100), dtype=np.float32)
+        # Для теста: используем реальный DataFrame с правильными колонками
         import pandas as pd
-        dummy_data = pd.DataFrame({f"feature_{i}": [0.0] for i in range(60)})
+        # Пример: возьмём колонки из вашего X_train (если есть)
+        # Если нет — создадим заглушку с именами, как при обучении
+        # Загружаем информацию о признаках
+        feature_info = joblib.load('models/lightgbm/test/feature_info.pkl')
+        all_feature_names = feature_info['numeric_features'] + feature_info['categorical_features']
+
+        # Создаём dummy DataFrame
+        dummy_df = pd.DataFrame([0.0] * len(all_feature_names)).T
+        dummy_df.columns = all_feature_names
+
+        predictions = model_manager.predict("lightgbm", dummy_df)
+
 
         # Вызываем модель
-        predictions = model_manager.predict(algo=selected_model_id, data=dummy_data, env=env)
+        #predictions = model_manager.predict(algo=selected_model_id, data=dummy_data, env=env)
+        #predictions = model_manager.predict("lightgbm", dummy_data)
 
-        # Возвращаем результат
+        #Для теста
+        '''bundle = model_manager._get_or_load_bundle(algo=selected_model_id, env=env)
+        X = pd.DataFrame([0.0] * len(bundle.feature_names)).T
+        X.columns = bundle.feature_names
+        pred = bundle.model.predict(X.values, predict_disable_shape_check=True)
+        predictions = [str(x) for x in pred]'''
+        #Возвращаем результат
         return jsonify({
             "status": "success",
             "predictions": predictions,

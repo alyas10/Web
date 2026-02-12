@@ -128,3 +128,15 @@ select.input-field {
     background-size: 1rem;
     padding-right: 2rem;
 }
+.page-container {
+    width: 100% !important;
+    max-width: 1200px !important;
+    margin: 0 auto !important;
+    padding: 2rem !important;
+    height: auto !important;  /* переопределяем height: 100% из styles.css */
+    background: transparent !important;
+}
+
+.page-content {
+    padding: 0 !important;  /* обнуляем padding из styles.css */
+}
