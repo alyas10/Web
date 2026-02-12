@@ -1,10 +1,14 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 import os
+from model_manager.model_manager import ModelManager
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500 MB
+
+# Инициализируем менеджер моделей
+model_manager = ModelManager(models_root="models")
 
 # Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -137,6 +141,43 @@ def results():
 @app.route('/settings')
 def settings():
     return render_template('settings.html')
+
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    """
+    Выполняет предсказание для выбранной модели.
+    Пока что без загрузки данных – вызываем модель с "пустыми" признаками.
+    """
+    selected_model_id = request.form.get('selected_model', 'lightgbm')
+    # env – пока всегда test (позже можно добавить выбор)
+    env = 'test'
+
+    # Проверим, поддерживает ли ModelManager эту модель
+    if selected_model_id not in model_manager.file_map:
+        return jsonify({"error": f"Модель '{selected_model_id}' не поддерживается."}), 400
+
+    try:
+        # ВНИМАНИЕ: на данном этапе у нас нет данных, чтобы передать в predict()
+        # Пока что вызовем с "пустым" DataFrame (только нужные колонки)
+        # Заглушка: пустой DataFrame с нужными колонками (например, 60 признаков)
+        # В реальности: это будет результат DataLoaderFactory.process_file()
+        import pandas as pd
+        dummy_data = pd.DataFrame({f"feature_{i}": [0.0] for i in range(60)})
+
+        # Вызываем модель
+        predictions = model_manager.predict(algo=selected_model_id, data=dummy_data, env=env)
+
+        # Возвращаем результат
+        return jsonify({
+            "status": "success",
+            "predictions": predictions,
+            "count": len(predictions),
+            "model_used": f"{selected_model_id}/{env}",
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
