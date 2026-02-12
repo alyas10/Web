@@ -190,10 +190,11 @@ def predict():
 
         # Создаём dummy DataFrame
         dummy_df = pd.DataFrame([0.0] * len(all_feature_names)).T
+        print(dummy_df)
         dummy_df.columns = all_feature_names
 
         predictions = model_manager.predict("lightgbm", dummy_df)
-
+        predicted_class = predictions[0] if predictions else "Unknown"
 
         # Вызываем модель
         #predictions = model_manager.predict(algo=selected_model_id, data=dummy_data, env=env)
@@ -209,6 +210,7 @@ def predict():
         return jsonify({
             "status": "success",
             "predictions": predictions,
+            "predicted_class": predicted_class,
             "count": len(predictions),
             "model_used": f"{selected_model_id}/{env}",
         })

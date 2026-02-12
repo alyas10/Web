@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     console.log('Результаты:', data);
                     // Здесь можно вызвать модальное окно или обновить таблицу результатов
-                    alert(`Анализ завершен успешно!\nМодель: ${data.model_used}\nКлассифицировано строк: ${data.count}`);
+                    alert(`Анализ завершен успешно!\nМодель: ${data.model_used}\nКлассифицировано строк: ${data.count} \nПредсказанный класс: ${data.predicted_class}`);
                 }
             })
             .catch(error => {
