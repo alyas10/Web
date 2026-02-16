@@ -1,24 +1,41 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
-import os
+import os,shutil
 from model_manager.model_manager import ModelManager
 from model_manager.model_utils  import NumericFeatureSelector
+from data_loader.base import DataPipelineAdapter
+from data_loader.csv_loader import CSVDataLoader
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500 MB
 
+def clean_upload_folder():
+    """Очищает папку загрузок, удаляя и пересоздавая её."""
+    folder = app.config['UPLOAD_FOLDER']
+    try:
+        if os.path.exists(folder):
+            shutil.rmtree(folder)
+        os.makedirs(folder, exist_ok=True)
+        print("Папка uploads очищена.")
+    except Exception as e:
+        print(f" Ошибка очистки папки: {e}")
+
+clean_upload_folder()
+
 # Тест загрузки пайплайна
 try:
     import joblib
     pipe = joblib.load("models/lightgbm/test/full_pipeline.pkl")
-    print("✅ Pipeline loaded OK")
-    print("Pipeline steps:", [step[0] for step in pipe.steps])
+    feature_info = joblib.load('models/lightgbm/test/feature_info.pkl')
+    REQUIRED_FEATURES = feature_info['numeric_features'] + feature_info['categorical_features']
 except Exception as e:
-    print("❌ Pipeline load failed:", e)
+    pipe, REQUIRED_FEATURES = None
+
 
 # Инициализируем менеджер моделей
 model_manager = ModelManager(models_root="models")
+data_adapter = DataPipelineAdapter(expected_features=REQUIRED_FEATURES)
 #model_manager.clear_cache()
 
 # Ensure upload folder exists
@@ -121,15 +138,62 @@ def upload_file():
         return jsonify({'error': 'No file selected'}), 400
     
     # Save file
+
     filename = file.filename
-    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-    
-    uploaded_file = {
-        'name': filename,
-        'size': os.path.getsize(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-    }
-    
-    return render_template('data_upload.html', sample_data=SAMPLE_DATA, uploaded_file=uploaded_file)
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+
+    try:
+        # 1. Выбор загрузчика в зависимости от расширения
+        ext = os.path.splitext(filename)[1].lower()
+        loader = None
+
+        if ext == '.csv':
+         loader = CSVDataLoader()
+        # elif ext in ['.pcap', '.pcapng']:
+        #     loader = PCAPDataLoader()
+        else:
+          return jsonify({'error': f'Формат {ext} не поддерживается'}), 400
+        # 2. Загрузка сырых данных
+        raw_df = loader.load(filepath)
+        print(f"✅ raw_df загружен: {raw_df.shape}")# ← ОТЛАДКА
+        print(f"raw_df: {raw_df[:5]}")
+
+        # 3. Подготовка данных под модель
+        processed_df = data_adapter.prepare(raw_df)
+        print(f"✅ processed_df после подготовки: {processed_df.shape}")  # ← ОТЛАДКА
+        print(f"✅ Колонки: {processed_df.columns.tolist()}")  # ← ОТЛАДКА
+        print(f"✅ Первые 2 строки:\n{processed_df.head(2)}")  # ← ОТЛАДКА
+
+        # 4. Предпросмотр для фронтенда
+        sample_data = processed_df.head(6).to_dict(orient='records')
+        columns = processed_df.columns.tolist()
+        print(f"✅ sample_data (первые 2 записи): {sample_data[:2]}")  # ← ОТЛАДКА
+        print(f"✅ Тип sample_data: {type(sample_data)}")
+        print(f"✅ Длина sample_data: {len(sample_data)}")
+
+        # Сохраняем обработанный DF во временное хранилище или сессию,
+        # чтобы потом использовать его в /predict, если пользователь нажмет "Анализ"
+        # Например, сохраняем в pickle во временную папку с уникальным ID
+        import uuid
+        session_id = str(uuid.uuid4())
+        temp_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{session_id}_processed.pkl")
+        #processed_df.to_pickle(temp_path)
+        raw_df.to_pickle(temp_path)
+
+        uploaded_file_info = {
+            'name': filename,
+            'size': os.path.getsize(filepath),
+            'session_id': session_id  # Передаем ID сессии для следующего шага
+        }
+
+        return render_template('data_upload.html',
+                               sample_data=sample_data,
+                               columns=columns,
+                               uploaded_file=uploaded_file_info)
+    except Exception as e:
+        return jsonify({'error': f"Ошибка обработки данных: {str(e)}"}), 500
+
 
 @app.route('/results')
 def results():

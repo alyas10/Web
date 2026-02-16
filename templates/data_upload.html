@@ -1,7 +1,5 @@
 {% extends "base.html" %}
-
 {% block title %}Загрузка данных - ML Network Security{% endblock %}
-
 {% block content %}
 <div class="page-container">
     <div class="page-header">
@@ -11,13 +9,16 @@
                 <p class="page-subtitle">Загрузите сетевые данные для анализа</p>
             </div>
         </div>
-        <button class="btn btn-primary">
-            <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            Запустить анализ
-        </button>
+        {# Ссылка или кнопка для запуска обработки #}
+        <form action="{{ url_for('upload_file') }}" method="post" style="display: inline;">
+             <button type="submit" name="action" value="analyze" class="btn btn-primary">
+                <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Запустить анализ
+            </button>
+        </form>
     </div>
 
     <div class="page-content">
@@ -64,52 +65,50 @@
         {% endif %}
 
         <!-- Data Preview -->
-        {% if uploaded_file or sample_data %}
+        {# Добавлена проверка на наличие columns #}
+        {% if columns and sample_data %}
         <div class="card">
             <div class="card-header">
                 <h3 class="card-title">Предпросмотр данных</h3>
-                <p class="card-subtitle">Первые 6 строк загруженного датасета</p>
+                <p class="card-subtitle">Первые 6 строк датасета (показано до 8 признаков)</p>
             </div>
             <div class="table-container">
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Timestamp</th>
-                            <th>Source IP</th>
-                            <th>Dest IP</th>
-                            <th>Protocol</th>
-                            <th>Port</th>
-                            <th>Bytes</th>
-                            <th>Label</th>
+                            {% for col in columns[:8] %}
+                                <th>{{ col }}</th>
+                            {% endfor %}
+                            <th>Status (Label)</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for row in sample_data %}
-                        <tr>
-                            <td class="font-mono text-secondary">{{ row.id }}</td>
-                            <td class="font-mono">{{ row.timestamp }}</td>
-                            <td class="font-mono">{{ row.src_ip }}</td>
-                            <td class="font-mono">{{ row.dst_ip }}</td>
-                            <td class="font-mono">{{ row.protocol }}</td>
-                            <td class="font-mono">{{ row.port }}</td>
-                            <td class="font-mono">{{ row.bytes }}</td>
-                            <td>
-                                {% if row.label == 'Benign' %}
-                                <span class="badge badge-green">{{ row.label }}</span>
-                                {% elif row.label == 'DoS' %}
-                                <span class="badge badge-red">{{ row.label }}</span>
-                                {% elif row.label == 'Intrusion' %}
-                                <span class="badge badge-orange">{{ row.label }}</span>
-                                {% else %}
-                                <span class="badge badge-yellow">{{ row.label }}</span>
-                                {% endif %}
-                            </td>
-                        </tr>
+                            <tr>
+                                {% for col in columns[:8] %}
+                                    {# Безопасное получение данных по ключу #}
+                                    <td>{{ row.get(col, '-') }}</td>
+                                {% endfor %}
+
+                                {# Логика определения метки (Label) #}
+                                {% set label_val = row.get('Label', row.get('label', 'Unknown')) %}
+                                <td>
+                                    <span class="badge
+                                        {% if label_val|lower == 'benign' %}badge-green
+                                        {% elif label_val|lower == 'dos' or label_val|lower == 'attack' %}badge-red
+                                        {% else %}badge-yellow{% endif %}">
+                                        {{ label_val }}
+                                    </span>
+                                </td>
+                            </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+        </div>
+        {% elif uploaded_file %}
+        <div class="card" style="padding: 20px; text-align: center;">
+            <p>Данные загружены, но не могут быть отображены. Проверьте формат файла.</p>
         </div>
         {% endif %}
     </div>
@@ -120,16 +119,14 @@ const uploadZone = document.getElementById('uploadZone');
 const fileInput = document.getElementById('fileInput');
 const uploadForm = document.getElementById('uploadForm');
 
-// Drag and drop
+// Drag and drop logic
 uploadZone.addEventListener('dragover', (e) => {
     e.preventDefault();
     uploadZone.classList.add('dragging');
 });
-
 uploadZone.addEventListener('dragleave', () => {
     uploadZone.classList.remove('dragging');
 });
-
 uploadZone.addEventListener('drop', (e) => {
     e.preventDefault();
     uploadZone.classList.remove('dragging');
@@ -139,7 +136,7 @@ uploadZone.addEventListener('drop', (e) => {
     }
 });
 
-// File input change
+// File input change logic
 fileInput.addEventListener('change', () => {
     if (fileInput.files.length > 0) {
         uploadForm.submit();
