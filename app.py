@@ -1,4 +1,11 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import (Flask, render_template, request,
+                   jsonify, redirect, url_for,session)
+
+from werkzeug.utils import secure_filename
+from datetime import datetime, timezone
+from collections import Counter
+import joblib
+import pandas as pd ,numpy as np
 import os,shutil
 from model_manager.model_manager import ModelManager
 from model_manager.model_utils  import NumericFeatureSelector
@@ -25,12 +32,13 @@ clean_upload_folder()
 
 # Тест загрузки пайплайна
 try:
-    import joblib
     pipe = joblib.load("models/lightgbm/test/full_pipeline.pkl")
     feature_info = joblib.load('models/lightgbm/test/feature_info.pkl')
     REQUIRED_FEATURES = feature_info['numeric_features'] + feature_info['categorical_features']
+    print(feature_info['numeric_features':20])
+    print(feature_info['categorical_features':20])
 except Exception as e:
-    pipe, REQUIRED_FEATURES = None
+    pipe, REQUIRED_FEATURES = None, None
 
 
 # Инициализируем менеджер моделей
@@ -52,32 +60,54 @@ SAMPLE_DATA = [
 ]
 
 @app.route('/')
+@app.route('/dashboard')
 def dashboard():
-    stats = [
-        {'label': 'Всего анализов', 'value': '1,247', 'change': '+12.5%', 'trend': 'up', 'icon': 'activity', 'color': 'blue'},
-        {'label': 'Обнаружено атак', 'value': '342', 'change': '-8.2%', 'trend': 'down', 'icon': 'alert', 'color': 'red'},
-        {'label': 'Безопасный трафик', 'value': '89.3%', 'change': '+3.1%', 'trend': 'up', 'icon': 'check', 'color': 'green'},
-        {'label': 'Средняя точность', 'value': '96.4%', 'change': '+1.8%', 'trend': 'up', 'icon': 'trending', 'color': 'purple'},
-    ]
-    
-    recent_analyses = [
-        {'id': 1, 'model': 'LightGBM', 'dataset': 'network_capture_020726.pcap', 'accuracy': '96.42%', 'threats': 87, 'timestamp': '2026-02-07 09:23'},
-        {'id': 2, 'model': 'XGBoost', 'dataset': 'traffic_data_020626.csv', 'accuracy': '95.18%', 'threats': 124, 'timestamp': '2026-02-06 16:45'},
-        {'id': 3, 'model': 'Random Forest', 'dataset': 'network_scan_020526.pcap', 'accuracy': '94.73%', 'threats': 56, 'timestamp': '2026-02-05 14:12'},
-        {'id': 4, 'model': 'Isolation Forest', 'dataset': 'anomaly_detection_020426.csv', 'accuracy': '91.86%', 'threats': 203, 'timestamp': '2026-02-04 11:38'},
-    ]
-    
-    threat_distribution = [
-        {'type': 'DoS/DDoS', 'count': 145, 'percentage': 42, 'color': 'red'},
-        {'type': 'Intrusion', 'count': 98, 'percentage': 29, 'color': 'orange'},
-        {'type': 'Anomaly', 'count': 68, 'percentage': 20, 'color': 'yellow'},
-        {'type': 'Other', 'count': 31, 'percentage': 9, 'color': 'gray'},
-    ]
-    
-    return render_template('dashboard.html', 
-                         stats=stats, 
-                         recent_analyses=recent_analyses,
-                         threat_distribution=threat_distribution)
+    analysis_results = session.get('analysis_results')
+    analysis_loaded = bool(analysis_results)
+    if analysis_loaded:
+        # Карточки статистики — уже реальные
+        stats = [
+            {'label': 'Файл', 'value': analysis_results["filename"], 'change': '', 'trend': 'up', 'icon': 'activity',
+             'color': 'blue'},
+            {'label': 'Строк (событий)', 'value': str(analysis_results["rows"]), 'change': '', 'trend': 'up',
+             'icon': 'activity', 'color': 'purple'},
+            {'label': 'Обнаружено угроз', 'value': str(analysis_results["threats"]), 'change': '', 'trend': 'up',
+             'icon': 'alert', 'color': 'red'},
+            {'label': 'Модель', 'value': analysis_results["model_used"], 'change': '', 'trend': 'up',
+             'icon': 'trending', 'color': 'green'},
+        ]
+        recent_analyses = session.get("recent_analyses", [])  # компактная история
+        threat_distribution = analysis_results.get("threat_distribution", [])
+    else:
+        # Заглушки как раньше
+        stats = [
+            {'label': 'Всего анализов', 'value': '1,247', 'change': '+12.5%', 'trend': 'up', 'icon': 'activity',
+             'color': 'blue'},
+            {'label': 'Обнаружено атак', 'value': '342', 'change': '-8.2%', 'trend': 'down', 'icon': 'alert',
+             'color': 'red'},
+            {'label': 'Безопасный трафик', 'value': '89.3%', 'change': '+3.1%', 'trend': 'up', 'icon': 'check',
+             'color': 'green'},
+            {'label': 'Средняя точность', 'value': '96.4%', 'change': '+1.8%', 'trend': 'up', 'icon': 'trending',
+             'color': 'purple'},
+        ]
+        recent_analyses = [
+            {'id': 1, 'model': 'LightGBM', 'dataset': 'network_capture_020726.pcap', 'accuracy': '96.42%',
+             'threats': 87, 'timestamp': '2026-02-07 09:23'},
+            {'id': 2, 'model': 'XGBoost', 'dataset': 'traffic_data_020626.csv', 'accuracy': '95.18%', 'threats': 124,
+             'timestamp': '2026-02-06 16:45'},
+        ]
+        threat_distribution = [
+            {'type': 'DoS/DDoS', 'count': 145, 'percentage': 42, 'color': 'red'},
+            {'type': 'Intrusion', 'count': 98, 'percentage': 29, 'color': 'orange'},
+        ]
+    return render_template(
+        'dashboard.html',
+        stats=stats,
+        recent_analyses=recent_analyses,
+        threat_distribution=threat_distribution,
+        analysis_loaded=analysis_loaded,
+        analysis_results=analysis_results,
+    )
 
 @app.route('/models')
 def models():
@@ -128,6 +158,97 @@ def models():
 def data_upload():
     return render_template('data_upload.html', sample_data=SAMPLE_DATA, uploaded_file=None)
 
+def _label_color(label: str) -> str:
+    l = (label or "").strip().lower()
+    if l == "benign":
+        return "green"
+    if "dos" in l or "ddos" in l:
+        return "red"
+    if "intrusion" in l:
+        return "orange"
+    if "anomaly" in l:
+        return "yellow"
+    return "gray"
+
+
+@app.route('/start_analysis', methods=['POST'])
+def start_analysis():
+    # a) Принимаем имя файла (из формы) + fallback на last_uploaded_filename
+    filename = request.form.get('filename') or session.get('last_uploaded_filename')
+    if not filename:
+        return jsonify({"error": "Не передано имя файла для анализа."}), 400
+
+    filename = secure_filename(filename)
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+    # b) Загружаем исходный CSV
+    if not os.path.exists(filepath):
+        return jsonify({"error": f"Файл не найден в uploads: {filename}"}), 404
+
+    ext = os.path.splitext(filename)[1].lower()
+    if ext != ".csv":
+        return jsonify({"error": f"Формат {ext} не поддерживается для анализа (ожидается .csv)."}), 400
+
+    try:
+        loader = CSVDataLoader()
+        raw_df = loader.load(filepath)
+
+        # c) prepare
+        processed_df = data_adapter.prepare(raw_df)
+
+        # d) predict
+        algo = request.form.get('algo', 'lightgbm')
+        env = request.form.get('env', 'test')
+        predictions = model_manager.predict(algo=algo, data=processed_df, env=env)
+
+        # e) метрики
+        total = len(predictions)
+        counts = Counter(predictions)
+        benign = counts.get("Benign", counts.get("benign", 0))
+        threats = total - benign
+
+        distribution = []
+        for label, cnt in counts.most_common():
+            pct = round((cnt / total) * 100, 2) if total else 0.0
+            distribution.append({
+                "type": label,
+                "count": cnt,
+                "percentage": pct,
+                "color": _label_color(label),
+            })
+
+        # f) сохраняем результаты в session (компактно!)
+        ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+        analysis_results = {
+            "filename": filename,
+            "timestamp": ts,
+            "model_used": f"{algo}/{env}",
+            "rows": total,
+            "threats": threats,
+            "class_counts": dict(counts),
+            "threat_distribution": distribution,
+            "predictions_sample": predictions[:200],  # НЕ всё, иначе cookie переполнится
+        }
+        session['analysis_results'] = analysis_results
+
+        # (опционально) мини-история последних анализов (тоже компактно)
+        history = session.get("recent_analyses", [])
+        history.insert(0, {
+            "model": algo,
+            "dataset": filename,
+            "accuracy": "-",           # если нет y_true, accuracy считать нельзя
+            "threats": threats,
+            "timestamp": ts.replace("T", " "),
+        })
+        session["recent_analyses"] = history[:10]
+
+        # g) редирект на dashboard
+        return redirect(url_for('dashboard'))
+
+    except Exception as e:
+        return jsonify({"error": f"Ошибка анализа: {str(e)}"}), 500
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
@@ -138,10 +259,11 @@ def upload_file():
         return jsonify({'error': 'No file selected'}), 400
     
     # Save file
-
-    filename = file.filename
+    original_filename = file.filename
+    filename = secure_filename(original_filename)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(filepath)
+    session['last_uploaded_filename'] = filename
 
     try:
         # 1. Выбор загрузчика в зависимости от расширения
@@ -241,11 +363,9 @@ def predict():
         #feature_names = bundle.feature_names
 
         # Создаём DataFrame с нужными колонками, заполненный нулями
-        import  numpy as np
        # dummy_data = pd.DataFrame([0.0] * len(feature_names)).T
         #dummy_data = np.zeros((1, 100), dtype=np.float32)
         # Для теста: используем реальный DataFrame с правильными колонками
-        import pandas as pd
         # Пример: возьмём колонки из вашего X_train (если есть)
         # Если нет — создадим заглушку с именами, как при обучении
         # Загружаем информацию о признаках

@@ -20,6 +20,13 @@
 
     <div class="page-content">
         <!-- Stats Grid -->
+        {% if analysis_loaded %}
+       <div class="card" style="padding: 12px 16px; margin-bottom: 16px;">
+       <strong>Результаты последнего анализа загружены.</strong><br>
+        Файл: <span class="font-mono">{{ analysis_results.filename }}</span>,
+        время: <span class="font-mono">{{ analysis_results.timestamp }}</span>
+       </div>
+      {% endif %}
         <div class="stats-grid">
             {% for stat in stats %}
             <div class="stat-card">
