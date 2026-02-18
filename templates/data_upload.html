@@ -6,6 +6,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/upload_page.css') }}">
 {% endblock %}
+<script src="https://cdn.plot.ly/plotly-2.29.0.min.js"></script>
 <div class="page-container">
     <div class="page-header">
         <div class="page-header-content">
@@ -125,8 +126,21 @@
             <p>Данные загружены, но не могут быть отображены. Проверьте формат файла.</p>
         </div>
         {% endif %}
+
+         {% if visualization_cards %}
+        <div class="visualization-section">
+            <h3 class="section-title">Обзор данных</h3>
+            <div class="visualization-grid">
+                {% for card_html in visualization_cards %}
+                    {{ card_html | safe }}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
     </div>
 </div>
+
 
 <script>
 const uploadZone = document.getElementById('uploadZone');

@@ -9,8 +9,10 @@ import pandas as pd ,numpy as np
 import os,shutil
 from model_manager.model_manager import ModelManager
 from model_manager.model_utils  import NumericFeatureSelector
+
 from data_loader.base import DataPipelineAdapter
 from data_loader.csv_loader import CSVDataLoader
+from graphics.visualizer import DatasetVisualizer
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
@@ -44,7 +46,7 @@ except Exception as e:
 # Инициализируем менеджер моделей
 model_manager = ModelManager(models_root="models")
 data_adapter = DataPipelineAdapter(expected_features=REQUIRED_FEATURES)
-#model_manager.clear_cache()
+visualizer = DatasetVisualizer(feature_info=feature_info)
 
 # Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -278,6 +280,7 @@ def upload_file():
           return jsonify({'error': f'Формат {ext} не поддерживается'}), 400
         # 2. Загрузка сырых данных
         raw_df = loader.load(filepath)
+        visualization_cards_html = visualizer.generate_overview_plots(raw_df)
         print(f"✅ raw_df загружен: {raw_df.shape}")# ← ОТЛАДКА
         print(f"raw_df: {raw_df[:5]}")
 
@@ -312,7 +315,8 @@ def upload_file():
         return render_template('data_upload.html',
                                sample_data=sample_data,
                                columns=columns,
-                               uploaded_file=uploaded_file_info)
+                               uploaded_file=uploaded_file_info,
+                               visualization_cards=visualization_cards_html)
     except Exception as e:
         return jsonify({'error': f"Ошибка обработки данных: {str(e)}"}), 500
 

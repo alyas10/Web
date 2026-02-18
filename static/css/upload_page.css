@@ -99,3 +99,31 @@
 .btn-primary:hover:after {
     left: 120%;
 }
+.visualization-section {
+    margin-top: 2rem;
+}
+
+.visualization-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); /* Пример ширины */
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.visualization-card {
+    /* Уже используете стиль card */
+    /* Можно добавить доп. стили */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color);
+}
+
+.visualization-card .card-content {
+    padding: 1rem;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 1rem;
+}
