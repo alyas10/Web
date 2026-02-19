@@ -17,7 +17,7 @@
         </div>
         <!-- ИСПРАВЛЕНО: Форма теперь отправляется на /start_analysis -->
         {% if uploaded_file %}
-        <form action="{{ url_for('start_analysis') }}" method="post" style="display: inline;">
+        <form action="{{ url_for('data.start_analysis') }}" method="post" style="display: inline;">
             <input type="hidden" name="filename" value="{{ uploaded_file.name }}">
             <!-- Опционально: передать модель и среду, если они выбираются на этой странице -->
             <!-- <input type="hidden" name="algo" value="lightgbm"> -->
@@ -42,7 +42,7 @@
 
     <div class="page-content">
         <!-- Upload Zone -->
-        <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" id="uploadForm">
+        <form action="{{ url_for('data.upload_file') }}" method="post" enctype="multipart/form-data" id="uploadForm">
             <div class="upload-zone" id="uploadZone">
                 <div class="upload-icon-wrapper">
                     <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">

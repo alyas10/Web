@@ -33,7 +33,7 @@ class ModelManager:
     def __init__(self, models_root: Optional[Union[str, Path]] = None):
         self._lock = RLock()
         self._cache = {}
-        self.models_root = Path(models_root or Path(__file__).parent.parent / "models")
+        self.models_root = Path(models_root or Path(__file__).parent.parent / "pipeline")
 
         self.file_map = {
             "lightgbm": {

@@ -11,11 +11,11 @@ import joblib
 #     'n_features_in': 229,
 #     'classes_': [...],
 # }
-# Для этого скрипта предположим, что файл 'feature_info.pkl' уже существует и находится в 'models/lightgbm/test/'
+# Для этого скрипта предположим, что файл 'feature_info.pkl' уже существует и находится в 'pipeline/lightgbm/test/'
 # Или вы можете раскомментировать и использовать словарь выше, если он у вас есть в коде.
 
 # Путь к файлу
-FEATURE_INFO_PATH = "models/lightgbm/test/feature_info.pkl"
+FEATURE_INFO_PATH = "pipeline/lightgbm/test/feature_info.pkl"
 
 try:
     feature_info = joblib.load(FEATURE_INFO_PATH)
