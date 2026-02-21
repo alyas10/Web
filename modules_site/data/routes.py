@@ -66,9 +66,12 @@ def upload_file():
 
     try:
         from data_loader.csv_loader import CSVDataLoader
+        from data_loader.pcap_loader import PcapScapyDataLoader
         ext = os.path.splitext(filename)[1].lower()
         if ext == '.csv':
             loader = CSVDataLoader()
+        elif ext in PcapScapyDataLoader().supported_extensions:
+            loader = PcapScapyDataLoader()
         else:
             return jsonify({'error': f'Формат {ext} не поддерживается'}), 400
 

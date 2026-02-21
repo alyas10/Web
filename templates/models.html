@@ -138,6 +138,223 @@ select.input-field {
     background-position: right 0.5rem center;
     background-size: 1rem;
     padding-right: 2rem;
+    }
+
+.model-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.modal-container {
+    background: #111827;
+    border: 1px solid #374151;
+    border-radius: 1rem;
+    width: 90%;
+    max-width: 900px;
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.modal-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 9999 !important;
+    background: rgba(0, 0, 0, 0.75) !important;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+
+.modal-overlay[style*="display:flex"] .modal-container{
+    display: flex !important;
+    animation: modalAppear 0.3s ease-out forwards;
+    border-color: rgba(33, 150, 243, 0.5);
+    box-shadow: 0 0 0 1px rgba(33, 150, 243, 0.2), 0 20px 40px rgba(0,0,0,0.4);
+}
+
+@keyframes modalAppear {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+
+.modal-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #1f2937;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1a222f;
+}
+.modal-close {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 1.5rem;
+    transition: color 0.2s;
+}
+.modal-close:hover { color: white; }
+/* Стили вкладок (Tabs) */
+.viz-tabs-nav {
+    display: flex;
+    gap: 1rem;
+    padding: 0 1.5rem;
+    background: #1a222f;
+    border-bottom: 1px solid #1f2937;
+}
+.viz-tab {
+    padding: 1rem 0;
+    color: #9ca3af;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+.viz-tab.active {
+    color: #2196F3;
+    border-bottom-color: #2196F3;
+}
+/*кнопка визуализации*/
+.viz-btn {
+        align-self: flex-start;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: linear-gradient(135deg, #2196F3, #1976D2);
+        color: white;
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.4rem 0.85rem;
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-top: 0.75rem;
+        box-shadow: 0 2px 8px rgba(33, 150, 243, 0.25);
+    }
+    .viz-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+        background: linear-gradient(135deg, #1976D2, #1565C0);
+    }
+    .viz-btn:active { transform: translateY(0); }
+    @media (max-width: 768px) { .viz-btn { width: 100%; justify-content: center; } }
+
+
+/* Контейнер карточки */
+.viz-card {
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Заголовок карточки */
+.viz-card-header {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #374151;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1a222f;
+}
+
+.viz-card-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+/* Кнопка скачивания в карточке */
+.viz-card-download {
+    background: #374151;
+    border: none;
+    color: #9ca3af;
+    border-radius: 0.375rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.viz-card-download:hover {
+    background: #2196F3;
+    color: white;
+}
+
+/* Тело карточки с графиком */
+.viz-card-body {
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-height: 300px;
+    background: #111827;
+}
+
+/* Изображение внутри карточки */
+.viz-card-body .viz-image {
+    max-width: 100%;
+    max-height: 400px;
+    object-fit: contain;
+    border-radius: 0.375rem;
+}
+
+/* Футер карточки */
+.viz-card-footer {
+    padding: 0.5rem 1rem;
+    border-top: 1px solid #374151;
+    background: #1a222f;
+    text-align: center;
+}
+.viz-card-footer .viz-note {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin: 0;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .viz-card-body {
+        min-height: 250px;
+    }
+    .viz-card-body .viz-image {
+        max-height: 300px;
+    }
+}
+    .tab-pane {
+    display: none;           /* ← Скрыто по умолчанию */
+    animation: fadeIn 0.2s ease;
+}
+.tab-pane.active {
+    display: block;          /* ← Показываем только активную */
+}
+
+/* Плавное появление (опционально) */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Чтобы картинки не грузились в фоне, когда панель скрыта */
+.tab-pane:not(.active) .viz-image {
+    display: none;
 }
 </style>
 
@@ -167,7 +384,19 @@ select.input-field {
                 <div class="model-info">
                     <h3 class="model-card-title">{{ model.name }}</h3>
                     <p class="model-card-description">{{ model.description }}</p>
+
+                              {% if model.has_viz %}
+                <button type="button" class="viz-btn"
+                        data-model-id="{{ model.id }}"
+                        data-model-name="{{ model.name }}"
+                onclick="event.stopPropagation();
+                        openVizModal('{{ model.id }}', '{{ model.name }}')">
+                Визуализация
+                </button>
+                {% endif %}
+
                 </div>
+
                 <div class="radio-button">
                     <input type="radio" name="selected_model" value="{{ model.id }}" id="model-{{ model.id }}" {% if loop.first %}checked{% endif %}>
                     <label for="model-{{ model.id }}"></label>
@@ -197,8 +426,11 @@ select.input-field {
         {% endfor %}
     </div>
 </div>
+{% include 'modals/_model_viz.html' %}
 
 </div>
+
+
 {% endblock %}
 
 

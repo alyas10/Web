@@ -40,10 +40,8 @@ class DatasetVisualizer:
         plots_html = []
 
         # --- 1. Гистограмма протоколов ---
-        # Ищем колонки, связанные с протоколами (например, Protocol_TCP, Protocol_UDP)
         protocol_cols = [col for col in df.columns if col.startswith('Protocol_') and col in self.categorical_features]
         if protocol_cols:
-            # Суммируем единицы для каждого протокола (one-hot encoded)
             protocol_counts = df[protocol_cols].sum().sort_values(ascending=False)
             if not protocol_counts.empty:
                 fig_protocol = px.bar(
@@ -58,7 +56,6 @@ class DatasetVisualizer:
                 plots_html.append(self._create_card("Распределение протоколов", plot_div_protocol))
 
         # --- 2. Гистограмма IP-адресов (Top N) ---
-        # Ищем колонки, связанные с IP (Source, Destination, etc.)
         ip_cols = [col for col in df.columns if 'ip' in col.lower() and col in self.categorical_features]
         combined_ips = pd.Series(dtype='object')
         for col in ip_cols:
@@ -80,7 +77,6 @@ class DatasetVisualizer:
             plots_html.append(self._create_card("Топ-10 IP-адресов", plot_div_ip))
 
         # --- 3. Круговая диаграмма для метки (если есть) ---
-        # Поиск колонки метки (label/class)
         label_col = None
         possible_label_names = ['label', 'class', 'Label', 'Class']
         for col_name in possible_label_names:
@@ -110,7 +106,6 @@ class DatasetVisualizer:
                 break
 
         if length_col:
-            # Убираем NaN для гистограммы
             lengths = df[length_col].dropna()
             if not lengths.empty:
                 fig_length = px.histogram(
@@ -139,5 +134,62 @@ class DatasetVisualizer:
                 fig_missing.update_layout(height=400)
                 plot_div_missing = fig_missing.to_html(full_html=False, include_plotlyjs=False)
                 plots_html.append(self._create_card("Пропуски в данных", plot_div_missing))
+
+        # --- 6. Дополнительное распределение протоколов (Pie) ---
+        protocol_raw_col = None
+        for col in ['proto', 'protocol', 'Proto', 'Protocol']:
+            if col in df.columns:
+                protocol_raw_col = col
+                break
+
+        if protocol_raw_col:
+            protocol_counts = df[protocol_raw_col].value_counts()
+            if not protocol_counts.empty:
+                fig_pie = px.pie(
+                    values=protocol_counts.values,
+                    names=protocol_counts.index.astype(str),
+                    title="🔗 Распределение протоколов",
+                    color_discrete_sequence=px.colors.sequential.Blues,
+                    template='plotly_white'
+                )
+                fig_pie.update_traces(textposition='inside', textinfo='percent+label')
+                fig_pie.update_layout(showlegend=False, height=400)
+                plot_div = fig_pie.to_html(full_html=False, include_plotlyjs=False)
+                plots_html.append(self._create_card("Распределение протоколов (Pie)", plot_div))
+
+        # --- 7. Интенсивность трафика во времени ---
+        timestamp_col = None
+        for col in ['timestamp', 'time', 'Timestamp', 'Time']:
+            if col in df.columns:
+                timestamp_col = col
+                break
+
+        if timestamp_col:
+            try:
+                df_temp = df.copy()
+                df_temp['timestamp'] = pd.to_datetime(df_temp[timestamp_col], errors='coerce')
+                df_temp = df_temp.dropna(subset=['timestamp'])
+
+                if not df_temp.empty:
+                    df_temp['minute'] = df_temp['timestamp'].dt.floor('T')
+                    traffic_by_time = df_temp.groupby('minute').size().reset_index(name='packets')
+
+                    if not traffic_by_time.empty:
+                        fig_line = px.line(
+                            traffic_by_time,
+                            x='minute',
+                            y='packets',
+                            title="📈 Интенсивность трафика во времени",
+                            markers=True,
+                            line_shape='spline',
+                            color_discrete_sequence=['#0066cc'],
+                            template='plotly_white'
+                        )
+                        fig_line.update_layout(height=400)
+                        plot_div = fig_line.to_html(full_html=False, include_plotlyjs=False)
+                        plots_html.append(self._create_card("Интенсивность трафика во времени", plot_div))
+            except Exception:
+                # Ошибка обработки времени игнорируется для стабильности визуализации
+                pass
 
         return plots_html

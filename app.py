@@ -49,6 +49,7 @@ def create_app():
     app.data_adapter = data_adapter
     app.visualizer = visualizer
     app.feature_info = feature_info
+    app.pipeline = pipe
 
     # Регистрация blueprints
     app.register_blueprint(dashboard_bp)

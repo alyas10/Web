@@ -48,6 +48,7 @@ def main():
     app.setApplicationName("ML Network Security")
 
     window = QWebEngineView()
+    window.setWindowIcon(QIcon("paw.png"))
     window.setWindowTitle("ML Network Security Simulator")
     window.resize(1280, 800)
     window.setUrl(QUrl("http://127.0.0.1:5000/settings"))
