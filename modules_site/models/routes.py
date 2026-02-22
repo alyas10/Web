@@ -10,9 +10,11 @@ import io
 import os
 import base64
 import matplotlib.pyplot as plt
-import lightgbm as lgb  # ← ДОБАВЛЕНО: нужен для plot_importance и plot_tree
-
+import lightgbm as lgb
+from sklearn import set_config
 import matplotlib
+
+set_config(display='diagram')
 matplotlib.use('agg')
 
 os.environ["PATH"] += os.pathsep + r'C:\Program Files\Graphviz\bin'
@@ -48,7 +50,6 @@ def _get_model_viz(model_id):
     Берёт пайплайн из current_app.pipeline (загружен в app.py при старте)
     """
     try:
-        # ← ИСПРАВЛЕНО: берём пайплайн из current_app вместо загрузки из файла
         pipeline = current_app.pipeline
 
         if pipeline is None:
@@ -57,6 +58,9 @@ def _get_model_viz(model_id):
         # Извлекаем обученную LightGBM модель из пайплайна
         lgb_model = pipeline.named_steps['classifier']
         booster = lgb_model.booster_
+
+        #pipeline_img = _plot_pipeline_structure(pipeline, current_app.feature_info)
+        pipeline_html = _get_pipeline_html(pipeline)
 
         # === ГРАФИК 1: Важность признаков ===
         plt.figure(figsize=(10, 6), facecolor='#1f2937')
@@ -77,13 +81,17 @@ def _get_model_viz(model_id):
         return {
             'success': True,
             'importance': importance_img,
+           # 'pipeline': pipeline_img,
+            'pipeline': pipeline_html,
+            'pipeline_type': 'html',
             'tree': tree_img,
             'info': {
+                'steps': len(pipeline.steps),
                 'trees': booster.num_trees(),
                 'features': booster.num_feature(),
                 'leaves': lgb_model.num_leaves
             }
-        }  # ← ИСПРАВЛЕНО: добавлена закрывающая скобка
+        }
 
     except Exception as e:
         return {'success': False, 'error': str(e)}
@@ -102,7 +110,7 @@ def models():
                 {'label': 'Глубина дерева', 'key': 'max_depth', 'type': 'number', 'value': 7},
                 {'label': 'Learning Rate', 'key': 'learning_rate', 'type': 'number', 'value': 0.1, 'step': 0.01},
             ],
-            'has_viz': True  # ← ДОБАВЛЕНО: флаг для визуализации
+            'has_viz': True
         },
         {
             'id': 'xgboost',
@@ -196,3 +204,103 @@ def predict():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+def _get_pipeline_html(pipeline):
+    """
+    Возвращает готовый HTML от sklearn (как в Jupyter).
+    """
+    # sklearn сам генерирует HTML через _repr_html_()
+    if hasattr(pipeline, '_repr_html_'):
+        return pipeline._repr_html_()
+    return None
+
+
+def _plot_pipeline_structure(pipeline, feature_info=None, dpi=100):
+    """
+    Рисует структуру sklearn Pipeline как блок-схему через matplotlib.
+    Возвращает base64-строку изображения.
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+
+    # Настройки стиля
+    plt.style.use('dark_background')
+    fig, ax = plt.subplots(1, 1, figsize=(10, 6), facecolor='#1f2937')
+    ax.set_xlim(0, 10)
+    ax.set_ylim(0, len(pipeline.steps) * 2 + 1)
+    ax.axis('off')
+
+    # Цвета для разных типов шагов
+    colors = {
+        'preprocessor': '#3B82F6',  # синий
+        'feature_selector': '#10B981',  # зелёный
+        'classifier': '#F59E0B',  # оранжевый
+        'default': '#6B7280'  # серый
+    }
+
+    # Рисуем каждый шаг пайплайна
+    for i, (step_name, step_obj) in enumerate(pipeline.steps):
+        y_pos = len(pipeline.steps) * 2 - i * 2
+
+        # Определяем тип шага для цвета
+        step_type = 'default'
+        if 'preprocess' in step_name.lower() or 'column' in type(step_obj).__name__.lower():
+            step_type = 'preprocessor'
+        elif 'select' in step_name.lower() or 'feature' in step_name.lower():
+            step_type = 'feature_selector'
+        elif 'classif' in step_name.lower() or 'regress' in step_name.lower():
+            step_type = 'classifier'
+
+        # Рисуем прямоугольник шага
+        rect = patches.Rectangle(
+            (1, y_pos - 0.4), 8, 0.8,
+            linewidth=2, edgecolor='white', facecolor=colors.get(step_type, colors['default']),
+            alpha=0.9)
+        ax.add_patch(rect)
+
+        # Текст: название шага
+        ax.text(5, y_pos, f'{step_name}', ha='center', va='center',
+                fontsize=11, fontweight='bold', color='white')
+
+        # Текст: тип объекта (мелким шрифтом)
+        obj_name = type(step_obj).__name__
+        if hasattr(step_obj, '__class__'):
+            obj_name = f"{step_obj.__class__.__module__.split('.')[-1]}.{obj_name}"
+        ax.text(5, y_pos - 0.6, obj_name, ha='center', va='top',
+                fontsize=8, color='#9ca3af', style='italic')
+
+        # Стрелка между шагами (кроме последнего)
+        if i < len(pipeline.steps) - 1:
+            ax.annotate('', xy=(5, y_pos - 1.2), xytext=(5, y_pos - 0.6),
+                        arrowprops=dict(arrowstyle='->', color='#6B7280', lw=1.5))
+
+    # Заголовок схемы
+    ax.text(5, len(pipeline.steps) * 2 + 0.5, ' Структура ML Pipeline',
+            ha='center', va='center', fontsize=14, fontweight='bold', color='white')
+
+    # Легенда с типами шагов
+    legend_y = -0.5
+    for label, color in colors.items():
+        if label != 'default':
+            ax.add_patch(patches.Rectangle((0.5, legend_y), 0.3, 0.3,
+                                           facecolor=color, edgecolor='white', alpha=0.9))
+            ax.text(1, legend_y + 0.15, label.replace('_', ' ').title(),
+                    fontsize=8, color='#9ca3af', va='center')
+            legend_y -= 0.4
+
+    # Информация о признаках (если передана)
+    if feature_info:
+        info_text = f"Признаков: {feature_info.get('n_features_in', 'N/A')}\n"
+        if 'numeric_features' in feature_info:
+            info_text += f"• Числовые: {len(feature_info['numeric_features'])}\n"
+        if 'categorical_features' in feature_info:
+            info_text += f"• Категориальные: {len(feature_info['categorical_features'])}"
+        ax.text(9.8, 0.3, info_text, ha='right', va='bottom',
+                fontsize=8, color='#6B7280', family='monospace',
+                bbox=dict(boxstyle='round', facecolor='#111827', edgecolor='#374151', alpha=0.8))
+
+    plt.tight_layout()
+
+    # Конвертируем в base64
+    return _plot_to_base64(dpi=dpi)

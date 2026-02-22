@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
         content: document.getElementById('vizContent'),
         error: document.getElementById('vizError'),
         title: document.getElementById('modalTitle'),
+        //imgPipeline: document.getElementById('imgPipeline'),
         imgImportance: document.getElementById('imgImportance'),
         imgTree: document.getElementById('imgTree'),
         metaInfo: document.getElementById('metaInfo')
@@ -117,12 +118,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 //ленивая загрузка
                 window.vizPayload = window.vizPayload || {};
+                window.vizPayload.pipeline = data.pipeline || null;
+                window.vizPayload.pipelineType = data.pipeline_type || null;
                 window.vizPayload.importance = data.importance || null;
                 window.vizPayload.tree = data.tree || null;
 
                 // 1. Загружаем график ТОЛЬКО активного таба (ленивая загрузка)
               const activeTab = document.querySelector('.viz-tab.active')?.dataset.tab;
 
+            /*   if (vizElements.imgPipeline && data.pipeline) {
+              //vizElements.imgPipeline.src = 'image/png;base64,' + data.pipeline;
+              vizElements.imgPipeline.src = 'data:image/png;base64,' + data.pipeline;
+               vizElements.imgPipeline.classList.add('loaded');
+               }*/
+            /*   if (activeTab === 'pipeline' && data.pipeline && data.pipeline_type === 'html') {
+        const container = document.getElementById('pipelineContainer');
+        if (container) {
+            container.innerHTML = data.pipeline;
+         }
+          }*/
              if (activeTab === 'importance' && vizElements.imgImportance && data.importance) {
               vizElements.imgImportance.src = 'data:image/png;base64,' + data.importance;
               vizElements.imgImportance.classList.add('loaded');
@@ -163,6 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Очистка ресурсов для предотвращения утечек памяти
         if (vizElements.imgImportance) vizElements.imgImportance.src = '';
         if (vizElements.imgTree) vizElements.imgTree.src = '';
+        //if (vizElements.imgPipeline) vizElements.imgPipeline.src = '';
     };
 
     window.downloadImage = function(imgId, filename) {
@@ -223,6 +238,7 @@ const downloadBtn = document.getElementById('downloadBtn');
 const footerHint = document.getElementById('vizCardFooter');
 
 const tabTitles = {
+  pipeline: 'Структура Pipeline',
   importance: 'Важность признаков (Feature Importance)',
   tree: 'Структура дерева решений',
   info: 'Информация'
@@ -250,10 +266,21 @@ function activateTab(targetId) {
   if (footerHint) footerHint.style.display = (targetId === 'tree') ? 'block' : 'none';
 
   // 6) LAZY: ставим src только когда вкладка реально открыта
+  /*if (targetId === 'pipeline' && vizElements.imgPipeline && !vizElements.imgPipeline.src && window.vizPayload?.pipeline) {
+    //vizElements.imgPipeline.src = 'image/png;base64,' + window.vizPayload.pipeline;
+    vizElements.imgPipeline.src = 'data:image/png;base64,' + window.vizPayload.pipeline;
+}*/
+if (targetId === 'pipeline' && window.vizPayload?.pipeline && window.vizPayload.pipelineType === 'html') {
+        const container = document.getElementById('pipelineContainer');
+        if (container) {
+            container.innerHTML = window.vizPayload.pipeline;
+        }
+    }
   if (targetId === 'importance' && vizElements.imgImportance && !vizElements.imgImportance.src && window.vizPayload?.importance) {
     vizElements.imgImportance.src = 'data:image/png;base64,' + window.vizPayload.importance;
 }
-if (targetId === 'tree' && vizElements.imgTree && !vizElements.imgTree.src && window.vizPayload?.tree) {
+if (targetId === 'tree' && vizElements.imgTree  && window.vizPayload?.tree) {
+//&& !vizElements.imgTree.src
     vizElements.imgTree.src = 'data:image/png;base64,' + window.vizPayload.tree;
 }
   resetAllZoom();

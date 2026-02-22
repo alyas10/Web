@@ -21,6 +21,7 @@
                 {# Навигация (Tabs) вынесена над карточкой #}
                 <div class="viz-tabs-container">
                     <div class="viz-tabs" role="tablist">
+                        <button type="button" class="viz-tab" data-tab="pipeline"> Pipeline</button>
                         <button type="button" class="viz-tab active" data-tab="importance">Важность признаков</button>
                         <button type="button" class="viz-tab" data-tab="tree">Дерево решений</button>
                         <button type="button" class="viz-tab" data-tab="info">Параметры</button>
@@ -38,7 +39,18 @@
                         </div>
                     </div>
 
+
                     <div class="viz-card-body">
+                         {# Пайплайн #}
+                      <div id="tab-pipeline" class="tab-pane" role="tabpanel">
+                       <!--   <div class="img-wrapper">
+                       <img id="imgPipeline" src="" alt="Структура пайплайна" class="viz-image" loading="lazy"> -->
+
+                         <div id="pipelineContainer" style="padding:1rem; overflow:auto;">
+                               <!-- Сюда вставится HTML от sklearn -->
+                          </div>
+                     </div>
+
                         {# Панель 1: Важность #}
                         <div id="tab-importance" class="tab-pane active">
                             <div class="img-wrapper">
