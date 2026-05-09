@@ -19,9 +19,17 @@
         {% if uploaded_file %}
         <form action="{{ url_for('data.start_analysis') }}" method="post" style="display: inline;">
             <input type="hidden" name="filename" value="{{ uploaded_file.name }}">
-            <!-- Опционально: передать модель и среду, если они выбираются на этой странице -->
-            <!-- <input type="hidden" name="algo" value="lightgbm"> -->
-            <!-- <input type="hidden" name="env" value="test"> -->
+            <!-- Выбор модели и среды -->
+            <select name="algo" class="input-field" style="margin-right: 10px;" onclick="event.stopPropagation()">
+                <option value="lightgbm">LightGBM</option>
+                <option value="xgboost">XGBoost</option>
+                <option value="random_forest">Random Forest</option>
+                <option value="isolation_forest">Isolation Forest</option>
+            </select>
+            <select name="env" class="input-field" style="margin-right: 10px;" onclick="event.stopPropagation()">
+                <option value="test">Test</option>
+                <option value="prod">Production</option>
+            </select>
             <button type="submit" class="btn btn-primary">
                 <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
@@ -121,6 +129,93 @@
                 </table>
             </div>
         </div>
+         {% if data_summary %}
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Характеристика датасета</h3>
+                <p class="card-subtitle">Краткая статистика загруженных данных</p>
+            </div>
+            <div class="summary-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; padding: 1.5rem;">
+                <!-- Основная статистика -->
+                <div class="summary-item">
+                    <div class="summary-label">Всего записей</div>
+                    <div class="summary-value">{{ data_summary.total_rows }}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Признаков</div>
+                    <div class="summary-value">{{ data_summary.total_columns }}</div>
+                </div>
+
+                <!-- Распределение протоколов -->
+                {% if data_summary.protocols %}
+                <div class="summary-item full-width">
+                    <div class="summary-label">Протоколы</div>
+                    <div class="protocol-list">
+                        {% for proto, count in data_summary.protocols.items() %}
+                            <span class="protocol-badge">{{ proto }}: {{ count }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Топ IP адресов -->
+                {% if data_summary.top_src_ips %}
+                <div class="summary-item full-width">
+                    <div class="summary-label">Топ IP-адресов (источники)</div>
+                    <ul class="ip-list">
+                        {% for ip, count in data_summary.top_src_ips.items() %}
+                            <li>{{ ip }} — {{ count }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {% if data_summary.top_dst_ips %}
+                <div class="summary-item full-width">
+                    <div class="summary-label">Топ IP-адресов (назначения)</div>
+                    <ul class="ip-list">
+                        {% for ip, count in data_summary.top_dst_ips.items() %}
+                            <li>{{ ip }} — {{ count }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <!-- Статистика графа -->
+                {% if data_summary.graph_stats %}
+                <div class="summary-item">
+                    <div class="summary-label">Узлов графа</div>
+                    <div class="summary-value">{{ data_summary.graph_stats.num_nodes }}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Рёбер графа</div>
+                    <div class="summary-value">{{ data_summary.graph_stats.num_edges }}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Средняя степень</div>
+                    <div class="summary-value">{{ data_summary.graph_stats.avg_degree }}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Компонент связности</div>
+                    <div class="summary-value">{{ data_summary.graph_stats.num_components }}</div>
+                </div>
+                {% endif %}
+
+                <!-- Распределение меток -->
+                {% if data_summary.label_distribution %}
+                <div class="summary-item full-width">
+                    <div class="summary-label">Распределение меток</div>
+                    <div class="label-list">
+                        {% for label, count in data_summary.label_distribution.items() %}
+                            <span class="label-badge label-{{ label|lower }}">{{ label }}: {{ count }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
         {% elif uploaded_file %}
         <div class="card" style="padding: 20px; text-align: center;">
             <p>Данные загружены, но не могут быть отображены. Проверьте формат файла.</p>
