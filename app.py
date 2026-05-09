@@ -50,6 +50,7 @@ def create_app():
     app.visualizer = visualizer
     app.feature_info = feature_info
     app.pipeline = pipe
+    app.REQUIRED_FEATURES = feature_info['numeric_features'] + feature_info['categorical_features']
 
     # Регистрация blueprints
     app.register_blueprint(dashboard_bp)
