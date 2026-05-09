@@ -77,6 +77,8 @@ def upload_file():
 
         raw_df = loader.load(filepath)
         visualization_cards_html = visualizer.generate_overview_plots(raw_df)
+        # Генерируем краткую характеристику датасета
+        data_summary = visualizer.generate_data_summary(raw_df)
 
         processed_df = data_adapter.prepare(raw_df)
         sample_data = processed_df.head(6).to_dict(orient='records')
@@ -96,7 +98,8 @@ def upload_file():
                                sample_data=sample_data,
                                columns=columns,
                                uploaded_file=uploaded_file_info,
-                               visualization_cards=visualization_cards_html)
+                               visualization_cards=visualization_cards_html,
+                               data_summary=data_summary)
 
     except Exception as e:
         return jsonify({'error': f"Ошибка обработки данных: {str(e)}"}), 500
@@ -130,6 +133,11 @@ def start_analysis():
 
         algo = request.form.get('algo', 'lightgbm')
         env = request.form.get('env', 'test')
+
+        # Проверяем, поддерживает ли ModelManager эту модель
+        if algo not in model_manager.file_map:
+            return jsonify({"error": f"Модель '{algo}' не поддерживается."}), 400
+
         predictions = model_manager.predict(algo=algo, data=processed_df, env=env)
 
         total = len(predictions)
