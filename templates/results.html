@@ -95,43 +95,37 @@
                 <!-- Confusion Matrix -->
                 <div class="card">
                     <h4 class="card-title mb-4">Confusion Matrix</h4>
+                    {% if confusion_matrix_img %}
+                    <img src="data:image/png;base64,{{ confusion_matrix_img }}" alt="Confusion Matrix" style="width: 100%; height: auto; border-radius: 0.5rem;">
+                    {% else %}
                     <div class="viz-placeholder">
-                        <div class="viz-icon-wrapper bg-blue-light">
-                            <svg class="viz-icon text-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path>
-                            </svg>
-                        </div>
-                        <p class="viz-title">Матрица ошибок</p>
-                        <p class="viz-subtitle">Визуализация классификации</p>
+                        <p class="viz-subtitle">График недоступен</p>
                     </div>
+                    {% endif %}
                 </div>
 
                 <!-- ROC Curve -->
                 <div class="card">
                     <h4 class="card-title mb-4">ROC Curve</h4>
+                    {% if roc_curve_img %}
+                    <img src="data:image/png;base64,{{ roc_curve_img }}" alt="ROC Curve" style="width: 100%; height: auto; border-radius: 0.5rem;">
+                    {% else %}
                     <div class="viz-placeholder">
-                        <div class="viz-icon-wrapper bg-purple-light">
-                            <svg class="viz-icon text-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
-                            </svg>
-                        </div>
-                        <p class="viz-title">ROC-кривая</p>
-                        <p class="viz-subtitle">AUC = 0.9823</p>
+                        <p class="viz-subtitle">График недоступен</p>
                     </div>
+                    {% endif %}
                 </div>
 
                 <!-- Feature Importance -->
                 <div class="card card-full">
                     <h4 class="card-title mb-4">Feature Importance</h4>
+                    {% if feature_importance_img %}
+                    <img src="data:image/png;base64,{{ feature_importance_img }}" alt="Feature Importance" style="width: 100%; height: auto; border-radius: 0.5rem;">
+                    {% else %}
                     <div class="viz-placeholder viz-horizontal">
-                        <div class="viz-icon-wrapper bg-green-light">
-                            <svg class="viz-icon text-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                            </svg>
-                        </div>
-                        <p class="viz-title">Важность признаков</p>
-                        <p class="viz-subtitle">Топ-15 наиболее значимых признаков</p>
+                        <p class="viz-subtitle">График недоступен</p>
                     </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
