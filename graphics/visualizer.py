@@ -4,6 +4,8 @@ import plotly.express as px
 from plotly.utils import PlotlyJSONEncoder
 import json
 import pandas as pd
+import networkx as nx
+from collections import Counter
 
 
 class DatasetVisualizer:
@@ -193,3 +195,92 @@ class DatasetVisualizer:
                 pass
 
         return plots_html
+
+    def generate_data_summary(self, df):
+        """
+        Генерирует краткую характеристику датасета в виде словаря.
+        Включает: количество строк/колонок, распределение протоколов, IP-адресов,
+        а также статистику графа связей (networkx).
+        """
+        summary = {
+            'total_rows': len(df),
+            'total_columns': len(df.columns),
+            'protocols': {},
+            'top_src_ips': {},
+            'top_dst_ips': {},
+            'graph_stats': {},
+            'label_distribution': {}
+        }
+
+        # 1. Распределение протоколов
+        protocol_col = None
+        for col in ['proto', 'protocol', 'Proto', 'Protocol']:
+            if col in df.columns:
+                protocol_col = col
+                break
+
+        if protocol_col:
+            protocol_counts = df[protocol_col].value_counts().to_dict()
+            summary['protocols'] = {str(k): int(v) for k, v in protocol_counts.items()}
+
+        # 2. Топ IP-адресов (источники и назначения)
+        for ip_type, col_patterns in [('src', ['src_ip', 'source_ip', 'ip_src']),
+                                      ('dst', ['dst_ip', 'destination_ip', 'ip_dst'])]:
+            ip_col = None
+            for pattern in col_patterns:
+                if pattern in df.columns:
+                    ip_col = pattern
+                    break
+
+            if ip_col:
+                ip_counts = df[ip_col].dropna().value_counts().head(10).to_dict()
+                summary[f'top_{ip_type}_ips'] = {str(k): int(v) for k, v in ip_counts.items()}
+
+        # 3. Граф связей (networkx) - строим граф src_ip -> dst_ip
+        src_ip_col = None
+        dst_ip_col = None
+
+        for pattern in ['src_ip', 'source_ip', 'ip_src']:
+            if pattern in df.columns:
+                src_ip_col = pattern
+                break
+
+        for pattern in ['dst_ip', 'destination_ip', 'ip_dst']:
+            if pattern in df.columns:
+                dst_ip_col = pattern
+                break
+
+        if src_ip_col and dst_ip_col:
+            G = nx.DiGraph()
+
+            # Добавляем рёбра из DataFrame
+            edges = df[[src_ip_col, dst_ip_col]].dropna().values.tolist()
+            G.add_edges_from(edges)
+
+            # Статистика графа
+            summary['graph_stats'] = {
+                'num_nodes': G.number_of_nodes(),
+                'num_edges': G.number_of_edges(),
+                'avg_degree': round(sum(dict(G.degree()).values()) / max(G.number_of_nodes(), 1), 2),
+                'is_connected': nx.is_weakly_connected(G) if G.number_of_nodes() > 0 else False,
+                'num_components': nx.number_weakly_connected_components(G) if G.number_of_nodes() > 0 else 0
+            }
+
+            # Топ узлов по степени (количеству соединений)
+            if G.number_of_nodes() > 0:
+                degree_centrality = nx.degree_centrality(G)
+                top_nodes = sorted(degree_centrality.items(), key=lambda x: x[1], reverse=True)[:5]
+                summary['graph_stats']['top_nodes'] = {str(k): round(v, 4) for k, v in top_nodes}
+
+        # 4. Распределение меток (если есть)
+        label_col = None
+        for col_name in ['label', 'class', 'Label', 'Class']:
+            if col_name in df.columns:
+                label_col = col_name
+                break
+
+        if label_col:
+            label_counts = df[label_col].value_counts().to_dict()
+            summary['label_distribution'] = {str(k): int(v) for k, v in label_counts.items()}
+
+        return summary
