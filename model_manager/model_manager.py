@@ -39,6 +39,10 @@ class ModelManager:
             "lightgbm": {
                 "pipeline": "full_pipeline.pkl",
                 "label_encoder": "label_encoder_full_dataset.pkl",
+            },
+            "xgboost": {
+                "pipeline": "xgb_optuna_best.joblib",
+                "label_encoder": "label_encoder.joblib",
             }
         }
 
@@ -58,7 +62,7 @@ class ModelManager:
 
         for p in paths.values():
             if not p.exists():
-                raise FileNotFoundError(p)
+                raise FileNotFoundError(f"Model file not found: {p}")
 
         pipeline = joblib.load(paths["pipeline"])
         label_encoder = joblib.load(paths["label_encoder"])
@@ -73,14 +77,13 @@ class ModelManager:
         bundle = self._get_or_load_bundle(algo, env)
 
         if isinstance(data, np.ndarray):
-            # Создайте DataFrame с правильными колонками (если вы знаете их)
-            # Для теста — используем числа, но без имён
             data = pd.DataFrame(data)
 
         try:
             pred = bundle.pipeline.predict(data)
             print(
-                f"[DEBUG] pred type: {type(pred)}, shape: {getattr(pred, 'shape', 'N/A')}, value: {pred[:5] if hasattr(pred, '__len__') else 'N/A'}")
+                f"[DEBUG] pred type: {type(pred)}, shape: {getattr(pred, 'shape', 'N/A')}, value: {pred[:5] if hasattr(pred, '__len__') else 'N/A'}"
+            )
         except Exception as e:
             print(f"[ERROR] pipeline.predict failed: {e}")
             raise
