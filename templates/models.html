@@ -417,26 +417,6 @@ select.input-field {
                     <label for="model-{{ model.id }}"></label>
                 </div>
             </div>
-
-            <div class="model-params">
-                <h4 class="params-title">Гиперпараметры</h4>
-                <div class="params-container">
-                    {% for param in model.params %}
-                    <div class="param-group">
-                        <label class="param-label">{{ param.label }}</label>
-                        {% if param.type == 'number' %}
-                        <input type="number" name="{{ param.key }}" value="{{ param.value }}" class="input-field" onclick="event.stopPropagation()">
-                        {% elif param.type == 'select' %}
-                        <select name="{{ param.key }}" class="input-field" onclick="event.stopPropagation()">
-                            {% for option in param.options %}
-                            <option value="{{ option }}">{{ option }}</option>
-                            {% endfor %}
-                        </select>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
         </div>
         {% endfor %}
     </div>
