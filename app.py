@@ -35,13 +35,35 @@ def create_app():
         feature_info = {'numeric_features': [], 'categorical_features': []}
         pipe = None
 
+    # Загрузка настроек из app_config.json
+    def load_app_config():
+        config_path = os.path.join(os.path.dirname(__file__), 'app_config.json')
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            # Возвращаем дефолтные значения
+            return {
+                "project_name": "ML Network Security Project",
+                "normalize_features": True,
+                "balance_classes": True,
+                "auto_preprocess": True
+            }
+
+    import json
+    app_config = load_app_config()
+
     # Инициализация общих объектов и передача их в blueprints
     from model_manager.model_manager import ModelManager
     from data_loader.base import DataPipelineAdapter
     from graphics.visualizer import DatasetVisualizer
 
     model_manager = ModelManager(models_root="pipeline")
-    data_adapter = DataPipelineAdapter(expected_features=feature_info['numeric_features'] + feature_info['categorical_features'])
+    # Передаём конфиг в адаптер для использования настроек обработки данных
+    data_adapter = DataPipelineAdapter(
+        expected_features=feature_info['numeric_features'] + feature_info['categorical_features'],
+        config=app_config
+    )
     visualizer = DatasetVisualizer(feature_info=feature_info)
 
     # Сохраняем в app.context или используем globals, если не хочется передавать аргументы в каждый blueprint
