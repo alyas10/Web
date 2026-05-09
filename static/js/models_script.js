@@ -52,21 +52,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const requestData = {
                 algo: modelId,
                 env: 'test',
-                params: {}
             };
-
-            // Собираем параметры только из выбранной карточки
-            modelCard.querySelectorAll('.input-field').forEach(input => {
-                if (input.name) {
-                    requestData.params[input.name] = input.value;
-                }
-            });
 
             // Индикация загрузки
             toggleLoadingState(runAnalysisBtn, true);
 
             try {
-                const response = await fetch('/predict', {
+                const response = await fetch('/models/predict', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(requestData)
@@ -74,16 +66,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const data = await response.json();
 
-                if (data.error) {
-                    throw new Error(data.error);
+                if (!response.ok) {
+                    throw new Error(data.error || `Ошибка сервера (${response.status})`);
                 }
 
-                // Успешный результат
-                alert(`✅ Анализ завершен!\nМодель: ${data.model_used}\nОбработано строк: ${data.count}\nРезультат: ${data.predicted_class}`);
+                // Успешный результат - показываем красивое уведомление
+                showToast(`✅ Анализ завершен! Обработано строк: ${data.count}. Переход на Dashboard...`, "success");
+
+                // Перенаправление на страницу Dashboard через небольшую паузу
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 1500); // Ждем 1.5 секунды чтобы пользователь увидел уведомление
 
             } catch (error) {
                 console.error('Analysis Error:', error);
-                alert("Ошибка при запуске анализа: " + error.message);
+                showToast("❌ Ошибка при запуске анализа: " + error.message, "error");
             } finally {
                 toggleLoadingState(runAnalysisBtn, false);
             }
