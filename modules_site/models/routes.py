@@ -24,6 +24,22 @@ import sys
 
 sys.modules['__main__'].NumericFeatureSelector = NumericFeatureSelector
 
+# Импорт функций для расчета характеристик моделей из pkl файлов
+from model_manager.model_metrics import (
+    extract_model_params,
+    extract_feature_names,
+    get_model_type_display,
+    get_model_speed,
+    get_model_complexity,
+    get_model_description,
+    get_model_advantages,
+    get_how_it_works,
+    get_security_application,
+    has_tree_viz,
+    calculate_accuracy_from_metrics,
+    extract_model_metadata
+)
+
 from sklearn import set_config
 
 set_config(display='diagram')
@@ -128,7 +144,7 @@ def _extract_features_from_bundle(bundle):
 def _get_model_metadata_from_file(model_id, env='test'):
     """
     Загружает ВСЕ данные о модели напрямую из сохранённых файлов через ModelManager.
-    НЕ использует статические конфиги.
+    НЕ использует статические конфиги. Использует функции из model_metrics.py.
     """
     try:
         # Проверяем наличие ModelManager и модели
@@ -149,150 +165,21 @@ def _get_model_metadata_from_file(model_id, env='test'):
             classifier = model_obj
             is_pipeline = False
 
-        # === Формируем метаданные модели ===
-        model_type = type(classifier).__name__
-
-        # Читаемые названия для отображения
-        type_mapping = {
-            'LGBMClassifier': 'Градиентный бустинг (LightGBM)',
-            'XGBClassifier': 'Градиентный бустинг (XGBoost)',
-            'RandomForestClassifier': 'Ансамбль деревьев (Random Forest)',
-            'IsolationForest': 'Детектор аномалий (Isolation Forest)',
-            'GradientBoostingClassifier': 'Градиентный бустинг (sklearn)',
-        }
-
-        # Извлекаем параметры
-        params = _extract_params_from_classifier(classifier)
-
-        # Извлекаем признаки
-        features = _extract_features_from_bundle(bundle)
-
-        # Оценка точности (если есть метрики в root_dir)
-        accuracy = '~N/A'
+        # Путь к метрикам
         metrics_path = bundle.root_dir / 'metrics.json'
-        if metrics_path.exists():
-            try:
-                import json
-                with open(metrics_path, 'r', encoding='utf-8') as f:
-                    metrics = json.load(f)
-                    acc = metrics.get('accuracy') or metrics.get('test_accuracy') or metrics.get('best_score')
-                    if acc:
-                        accuracy = f"~{round(float(acc) * 100, 1)}%"
-            except:
-                pass
 
-        # Скорость и сложность (оценка по типу модели)
-        speed_map = {
-            'LGBMClassifier': 'Высокая', 'XGBClassifier': 'Средняя',
-            'RandomForestClassifier': 'Средняя', 'IsolationForest': 'Высокая'
-        }
-        complexity_map = {
-            'LGBMClassifier': 'Средняя', 'XGBClassifier': 'Высокая',
-            'RandomForestClassifier': 'Низкая', 'IsolationForest': 'Низкая'
-        }
+        # Используем функцию extract_model_metadata из model_metrics.py
+        metadata = extract_model_metadata(
+            classifier=classifier,
+            bundle=bundle,
+            model_id=model_id,
+            metrics_path=metrics_path if metrics_path.exists() else None
+        )
 
-        # Базовое описание
-        descriptions = {
-            'LGBMClassifier': 'Gradient boosting framework с высокой производительностью для больших датасетов.',
-            'XGBClassifier': 'Оптимизированный gradient boosting алгоритм для сложных паттернов атак.',
-            'RandomForestClassifier': 'Ансамбль деревьев решений. Устойчив к переобучению.',
-            'IsolationForest': 'Unsupervised алгоритм для обнаружения аномалий и новых типов атак.',
-        }
+        # Добавляем флаг is_pipeline
+        metadata['is_pipeline'] = is_pipeline
 
-        # Преимущества
-        advantages = {
-            'LGBMClassifier': [
-                'Высокая скорость обучения и предсказания',
-                'Эффективная работа с большими датасетами',
-                'Низкое потребление памяти',
-                'Поддержка категориальных признаков',
-                'Встроенная регуляризация'
-            ],
-            'XGBClassifier': [
-                'Высокая точность на сложных данных',
-                'Встроенная обработка пропусков',
-                'Гибкая настройка регуляризации',
-                'Поддержка кастомных функций потерь'
-            ],
-            'RandomForestClassifier': [
-                'Устойчивость к переобучению',
-                'Работа с шумными данными',
-                'Оценка важности признаков',
-                'Минимальная настройка гиперпараметров'
-            ],
-            'IsolationForest': [
-                'Не требует размеченных данных',
-                'Обнаружение неизвестных угроз',
-                'Низкая вычислительная сложность',
-                'Масштабируемость на большие данные'
-            ],
-        }
-
-        # Как работает (кратко)
-        how_it_works = {
-            'LGBMClassifier': '''
-                <p><strong>LightGBM</strong> строит ансамбль деревьев последовательно, 
-                исправляя ошибки предыдущих итераций.</p>
-                <h4 style="color: #2196F3; margin-top: 1rem;">Особенности:</h4>
-                <ul>
-                    <li><strong>GOSS</strong> — выборка с большим градиентом для ускорения.</li>
-                    <li><strong>EFB</strong> — объединение взаимно исключающих признаков.</li>
-                    <li><strong>Leaf-wise рост</strong> — оптимальное разделение листьев.</li>
-                </ul>
-            ''',
-            'XGBClassifier': '''
-                <p><strong>XGBoost</strong> — оптимизированная реализация градиентного бустинга 
-                с регуляризацией и аппроксимацией второго порядка.</p>
-            ''',
-            'RandomForestClassifier': '''
-                <p><strong>Random Forest</strong> строит множество деревьев на случайных 
-                подвыборках данных и признаков, усредняя их предсказания.</p>
-            ''',
-            'IsolationForest': '''
-                <p><strong>Isolation Forest</strong> изолирует аномалии путём случайного 
-                разделения пространства признаков. Аномалии изолируются быстрее.</p>
-            ''',
-        }
-
-        # Применение в безопасности
-        security_app = {
-            'LGBMClassifier': '''
-                <p>Применяется для обнаружения DDoS-атак, классификации вторжений 
-                и детектирования аномалий в реальном времени.</p>
-            ''',
-            'XGBClassifier': '''
-                <p>Эффективен для мультиклассовой классификации атак и обработки 
-                несбалансированных данных через scale_pos_weight.</p>
-            ''',
-            'RandomForestClassifier': '''
-                <p>Подходит для базовой классификации атак с хорошей интерпретируемостью 
-                через feature importance.</p>
-            ''',
-            'IsolationForest': '''
-                <p>Идеален для обнаружения <strong>новых, неизвестных типов атак</strong> 
-                без необходимости предварительной разметки данных.</p>
-            ''',
-        }
-
-        return {
-            'id': model_id,
-            'name': model_type.replace('Classifier', '').replace('Forest', ' Forest'),
-            'tagline': descriptions.get(model_type, 'Модель машинного обучения для анализа сетевого трафика'),
-            'type': type_mapping.get(model_type, model_type),
-            'speed': speed_map.get(model_type, 'N/A'),
-            'accuracy': accuracy,
-            'complexity': complexity_map.get(model_type, 'N/A'),
-            'params': params,
-            'features': features[:10],  # Показываем первые 10 признаков
-            'has_tree_viz': model_type in ['LGBMClassifier', 'XGBClassifier'],
-            'how_it_works': how_it_works.get(model_type, '<p>Модель обучена на данных сетевого трафика.</p>'),
-            'security_application': security_app.get(model_type,
-                                                     '<p>Применяется для анализа сетевой безопасности.</p>'),
-            'advantages': advantages.get(model_type, ['Интерпретируемость', 'Автоматизация']),
-            'source': 'loaded_from_file',  # Для отладки
-            'model_type_raw': model_type,
-            'is_pipeline': is_pipeline,
-        }
+        return metadata
 
     except FileNotFoundError as e:
         current_app.logger.error(f"Model file not found for {model_id}: {e}")
