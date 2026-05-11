@@ -410,6 +410,13 @@ select.input-field {
                 </button>
                 {% endif %}
 
+                    <a href="{{ url_for('models.model_detail', model_id=model.id) }}" class="model-detail-link" style="display: inline-flex; align-items: center; gap: 0.35rem; background: #374151; color: #9CA3AF; border: none; border-radius: 0.5rem; padding: 0.4rem 0.85rem; font-size: 0.8rem; font-weight: 500; text-decoration: none; transition: all 0.2s ease; margin-top: 0.75rem;" onmouseover="this.style.background='#2196F3'; this.style.color='white'" onmouseout="this.style.background='#374151'; this.style.color='#9CA3AF'">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Подробнее
+                </a>
+
                 </div>
 
                 <div class="radio-button">

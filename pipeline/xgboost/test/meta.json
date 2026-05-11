@@ -1,0 +1,38 @@
+{
+  "metric_optimized": "mlogloss",
+  "best_value": 0.0484249750188659,
+  "best_params": {
+    "n_estimators": 689,
+    "learning_rate": 0.05744840102146592,
+    "max_depth": 5,
+    "min_child_weight": 4.7712494914932035,
+    "subsample": 0.840232757969999,
+    "colsample_bytree": 0.5423564401909056,
+    "gamma": 0.3623406130599373,
+    "reg_alpha": 1.4268277433381615,
+    "reg_lambda": 1.2489486876716254,
+    "max_bin": 473,
+    "max_delta_step": 7
+  },
+  "n_trials": 30,
+  "train_sample_frac_for_optuna": 0.08,
+  "early_stopping_rounds_optuna": 50,
+  "features_count": 55,
+  "n_classes": 14,
+  "class_names": [
+    "ARP-spoof",
+    "Benign",
+    "DDoS",
+    "DoS",
+    "FTP-Attack",
+    "FTP-Brute-Force",
+    "Fuzzing",
+    "ICMP-Flood",
+    "Port-Scanning",
+    "RCE",
+    "SQL-Injection",
+    "SSH-Brute-Force",
+    "SYN-Flood",
+    "XSS"
+  ]
+}

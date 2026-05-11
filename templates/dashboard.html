@@ -124,13 +124,16 @@
         <div class="card">
             <h3 class="card-title mb-4">Активные модели</h3>
             <div class="models-grid">
-                {% for model_name in ['LightGBM', 'XGBoost', 'Random Forest', 'Isolation Forest'] %}
-                <div class="model-status-card">
+                 {% for model in active_models %}
+                <div class="model-status-card tooltip-trigger" data-tooltip="{{ model.description }}">
                     <div class="status-indicator"></div>
                     <div>
-                        <p class="model-status-name">{{ model_name }}</p>
+                        <p class="model-status-name">{{ model.name }}</p>
                         <p class="model-status-text">Готова к запуску</p>
                     </div>
+                    <svg class="tooltip-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
                 </div>
                 {% endfor %}
             </div>

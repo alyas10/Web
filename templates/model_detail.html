@@ -1,0 +1,824 @@
+{% extends "base.html" %}
+
+{# Заголовок с project_name из настроек #}
+{% block title %}{{ model.name }} - {{ project_name or 'ML Network Security' }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --bg-primary: #111827;
+        --bg-secondary: #1f2937;
+        --bg-tertiary: #374151;
+        --text-primary: #f9fafb;
+        --text-secondary: #9ca3af;
+        --accent: #3b82f6;
+        --accent-hover: #2563eb;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --border-radius: 12px;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        --transition: all 0.2s ease-in-out;
+    }
+
+    * { box-sizing: border-box; }
+
+    .model-detail-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 1.5rem;
+        color: var(--text-primary);
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.95rem;
+        padding: 0.5rem 1rem;
+        border-radius: var(--border-radius);
+        transition: var(--transition);
+        margin-bottom: 1.5rem;
+    }
+
+    .back-link:hover {
+        color: var(--accent);
+        background: var(--bg-secondary);
+        transform: translateX(-4px);
+    }
+
+    .model-detail-header {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        padding: 1.5rem;
+        background: var(--bg-secondary);
+        border-radius: var(--border-radius);
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow);
+    }
+
+    .model-detail-icon {
+        width: 64px;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+        border-radius: 16px;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .model-detail-icon svg { width: 32px; height: 32px; }
+
+    .model-detail-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin: 0 0 0.25rem 0;
+        color: var(--text-primary);
+    }
+
+    .model-detail-subtitle {
+        font-size: 1.1rem;
+        color: var(--text-secondary);
+        margin: 0;
+    }
+
+    .model-source {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+        display: block;
+    }
+
+    .model-detail-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+        .model-detail-grid { grid-template-columns: 1fr; }
+    }
+
+    .detail-section {
+        background: var(--bg-secondary);
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow);
+        transition: var(--transition);
+    }
+
+    .detail-section:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.4);
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 1rem 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--bg-tertiary);
+    }
+
+    .section-title svg {
+        width: 20px;
+        height: 20px;
+        color: var(--accent);
+        flex-shrink: 0;
+    }
+
+    .detail-content {
+        color: var(--text-secondary);
+        line-height: 1.6;
+    }
+
+    .detail-content h4 {
+        color: var(--text-primary);
+        margin: 1.25rem 0 0.75rem 0;
+        font-size: 1.1rem;
+    }
+
+    .detail-content ul,
+    .detail-content ol {
+        padding-left: 1.5rem;
+        margin: 0.5rem 0;
+    }
+
+    .detail-content li { margin: 0.35rem 0; }
+
+    .detail-content a {
+        color: var(--accent);
+        text-decoration: none;
+    }
+
+    .detail-content a:hover { text-decoration: underline; }
+
+    /* Анимация дерева */
+    .animation-container {
+        position: relative;
+        background: var(--bg-primary);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        min-height: 450px;
+        overflow: hidden;
+    }
+
+    .tree-animation {
+        position: relative;
+        width: 100%;
+        height: 400px;
+        background: radial-gradient(ellipse at center, var(--bg-secondary) 0%, var(--bg-primary) 70%);
+        border-radius: 8px;
+        overflow: visible;
+    }
+
+    .tree-node {
+        position: absolute;
+        padding: 0.5rem 0.75rem;
+        background: var(--bg-tertiary);
+        border: 2px solid var(--accent);
+        border-radius: 8px;
+        font-size: 0.75rem;
+        color: var(--text-primary);
+        text-align: center;
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0;
+        transition: all 0.3s ease;
+        min-width: 90px;
+        max-width: 130px;
+        z-index: 2;
+        cursor: default;
+        backdrop-filter: blur(4px);
+        user-select: none;
+    }
+
+    .tree-node.root {
+        background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+        border-color: transparent;
+        font-weight: 600;
+        min-width: 110px;
+    }
+
+    .tree-node.leaf {
+        border-color: var(--success);
+        background: rgba(16, 185, 129, 0.15);
+        backdrop-filter: blur(4px);
+    }
+
+    .tree-node.node-highlight {
+        animation: pulse 0.8s ease-in-out;
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+    }
+
+    @keyframes pulse {
+        0%, 100% { transform: translate(-50%, -50%) scale(1); }
+        50% { transform: translate(-50%, -50%) scale(1.08); }
+    }
+
+    .tree-connection {
+        position: absolute;
+        height: 2px;
+        background: linear-gradient(90deg, var(--accent), var(--bg-tertiary));
+        transform-origin: left center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: 1;
+        pointer-events: none;
+    }
+
+    .animation-controls {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1rem;
+        justify-content: center;
+    }
+
+    .anim-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1.25rem;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--accent);
+        border-radius: 8px;
+        color: var(--text-primary);
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: var(--transition);
+    }
+
+    .anim-btn:hover,
+    .anim-btn.active {
+        background: var(--accent);
+        color: white;
+        border-color: transparent;
+    }
+
+    .anim-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .anim-btn svg { width: 16px; height: 16px; }
+
+    /* Сайдбар */
+    .sidebar .detail-section:first-child {
+        position: sticky;
+        top: 1.5rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+
+    .info-item {
+        padding: 0.75rem;
+        background: var(--bg-primary);
+        border-radius: 8px;
+        transition: var(--transition);
+    }
+
+    .info-item:hover { background: var(--bg-tertiary); }
+
+    .info-label {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.25rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .info-value {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        word-break: break-word;
+    }
+
+    .success-value { color: var(--success); }
+
+    .feature-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .feature-tag {
+        padding: 0.35rem 0.75rem;
+        background: var(--bg-primary);
+        border: 1px solid var(--bg-tertiary);
+        border-radius: 20px;
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        transition: var(--transition);
+    }
+
+    .feature-tag:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: rgba(59, 130, 246, 0.1);
+        transform: translateY(-1px);
+    }
+
+    .text-muted { color: var(--text-secondary); }
+
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        .model-detail-header {
+            flex-direction: column;
+            text-align: center;
+        }
+        .info-grid { grid-template-columns: 1fr; }
+        .animation-container { min-height: 380px; }
+        .tree-animation { height: 320px; }
+        .tree-node {
+            font-size: 0.7rem;
+            min-width: 70px;
+            padding: 0.35rem 0.5rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .model-detail-container { padding: 1rem; }
+        .detail-section { padding: 1rem; }
+        .animation-controls { flex-direction: column; }
+        .anim-btn { justify-content: center; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="model-detail-container">
+    {# Кнопка "Назад" #}
+    <a href="{{ url_for('models.models') }}" class="back-link" aria-label="Вернуться к списку моделей">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Назад к моделям
+    </a>
+
+    {# Заголовок модели #}
+    <div class="model-detail-header">
+        <div class="model-detail-icon" aria-hidden="true">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+            </svg>
+        </div>
+        <div>
+            <h1 class="model-detail-title">{{ model.name }}</h1>
+            <p class="model-detail-subtitle">{{ model.tagline | default('Модель машинного обучения для сетевой безопасности') }}</p>
+            {% if model.source %}
+            <small class="model-source">
+                📚 Источник: {{ model.source }}{% if model.model_type_raw %} • {{ model.model_type_raw }}{% endif %}
+            </small>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="model-detail-grid">
+        {# Основной контент #}
+        <div class="main-content">
+            {# Как работает модель #}
+            <div class="detail-section">
+                <h2 class="section-title">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                    </svg>
+                    Как работает {{ model.name }}
+                </h2>
+                <div class="detail-content">
+                    {{ model.how_it_works | safe }}
+                </div>
+            </div>
+
+            {# Визуализация дерева (если поддерживается) #}
+            {% if model.has_tree_viz %}
+            <div class="detail-section">
+                <h2 class="section-title">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Визуализация процесса принятия решений
+                </h2>
+                <div class="animation-container">
+                    <div class="tree-animation" id="treeAnimation" data-model="{{ model.id }}" role="img" aria-label="Визуализация дерева решений">
+                        <!-- Узлы генерируются через JS -->
+                    </div>
+                    <div class="animation-controls">
+                        <button class="anim-btn" id="startAnimBtn" onclick="startAnimation()" aria-label="Запустить анимацию">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Запустить
+                        </button>
+                        <button class="anim-btn" id="resetAnimBtn" onclick="resetAnimation()" aria-label="Сбросить анимацию">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            Сбросить
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {# Преимущества #}
+            {% if model.advantages %}
+            <div class="detail-section">
+                <h2 class="section-title">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Преимущества
+                </h2>
+                <div class="detail-content">
+                    <ul>
+                        {% for advantage in model.advantages %}
+                        <li>{{ advantage }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+
+            {# Применение в безопасности #}
+            <div class="detail-section">
+                <h2 class="section-title">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                    Применение в сетевой безопасности
+                </h2>
+                <div class="detail-content">
+                    {{ model.security_application | safe }}
+                </div>
+            </div>
+        </div>
+
+        {# Сайдбар #}
+        <div class="sidebar">
+            {# Информация о модели #}
+            <div class="detail-section">
+                <h2 class="section-title">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Характеристики
+                </h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Тип</div>
+                        <div class="info-value">{{ model.type | default('Не указан') }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Скорость</div>
+                        <div class="info-value">{{ model.speed | default('—') }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Точность</div>
+                        <div class="info-value {% if '96' in model.accuracy|string or 'высок' in model.accuracy|lower %}success-value{% endif %}">{{ model.accuracy | default('—') }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Сложность</div>
+                        <div class="info-value">{{ model.complexity | default('—') }}</div>
+                    </div>
+                </div>
+            </div>
+
+            {# Параметры модели — ДИНАМИЧЕСКИЙ ЦИКЛ ИЗ ФАЙЛА #}
+            {% if model.params %}
+            <div class="detail-section">
+                <h2 class="section-title">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    Ключевые параметры
+                </h2>
+                {% for param_name, param_value in model.params.items() %}
+                <div class="info-item" style="margin-bottom: 0.75rem;">
+                    <div class="info-label">{{ param_name | replace('_', ' ') | title }}</div>
+                    <div class="info-value">{{ param_value }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {# Используемые признаки #}
+            {% if model.features %}
+            <div class="detail-section">
+                <h2 class="section-title">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                    </svg>
+                    Анализируемые признаки
+                </h2>
+                <div class="feature-list">
+                    {% for feature in model.features %}
+                    <span class="feature-tag">{{ feature }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{# JS для анимации дерева — ИСПРАВЛЕННАЯ ВЕРСИЯ #}
+<script>
+    // Конфигурации деревьев для разных типов моделей
+    // ✅ ИСПРАВЛЕНО: синтаксическая ошибка в random_forest (id: 4: → id: 4,)
+    const treeConfigs = {
+        'lightgbm': {
+            nodes: [
+                { id: 1, type: 'root', text: 'Корень\n(pkt_len > 500)', x: 50, y: 10 },
+                { id: 2, type: 'node', text: 'proto == TCP', x: 30, y: 35 },
+                { id: 3, type: 'node', text: 'flags & SYN', x: 70, y: 35 },
+                { id: 4, type: 'node', text: 'port < 1024', x: 20, y: 60 },
+                { id: 5, type: 'leaf', text: 'DoS Attack\n(95%)', x: 40, y: 60 },
+                { id: 6, type: 'node', text: 'payload > 1KB', x: 60, y: 60 },
+                { id: 7, type: 'leaf', text: 'Benign\n(92%)', x: 80, y: 60 }
+            ],
+            connections: [[1,2], [1,3], [2,4], [2,5], [3,6], [3,7]]
+        },
+        'xgboost': {
+            nodes: [
+                { id: 1, type: 'root', text: 'Корень\ndst_port > 80', x: 50, y: 10 },
+                { id: 2, type: 'node', text: 'pkt_count > 100', x: 30, y: 35 },
+                { id: 3, type: 'node', text: 'flow_duration < 5s', x: 70, y: 35 },
+                { id: 4, type: 'leaf', text: 'Scan\n(93%)', x: 20, y: 60 },
+                { id: 5, type: 'leaf', text: 'Benign\n(96%)', x: 40, y: 60 },
+                { id: 6, type: 'leaf', text: 'DDoS\n(94%)', x: 60, y: 60 },
+                { id: 7, type: 'leaf', text: 'Normal\n(97%)', x: 80, y: 60 }
+            ],
+            connections: [[1,2], [1,3], [2,4], [2,5], [3,6], [3,7]]
+        },
+        'random_forest': {
+            nodes: [
+                { id: 1, type: 'root', text: 'Корень\nbytes_out > 1000', x: 50, y: 10 },
+                { id: 2, type: 'node', text: 'protocol == 6', x: 30, y: 35 },
+                { id: 3, type: 'node', text: 'duration > 10s', x: 70, y: 35 },
+                { id: 4, type: 'leaf', text: 'Malicious\n(89%)', x: 20, y: 60 },  // ✅ FIX: было "id: 4: type:"
+                { id: 5, type: 'leaf', text: 'Suspicious\n(76%)', x: 40, y: 60 },
+                { id: 6, type: 'leaf', text: 'Benign\n(99%)', x: 70, y: 60 }
+            ],
+            connections: [[1,2], [1,3], [2,4], [2,5], [3,6]]
+        }
+    };
+
+    let animationActive = false;
+    let currentNodeIndex = 0;
+    let currentTreeConfig = null;
+    let animationTimeout = null;
+
+    function getTreeConfig(modelId) {
+        if (!modelId) return treeConfigs['lightgbm'];
+        const config = treeConfigs[modelId];
+        return config || treeConfigs['lightgbm'];
+    }
+
+    function createNode(node) {
+        const nodeEl = document.createElement('div');
+        nodeEl.className = `tree-node ${node.type}`;
+        nodeEl.id = `node-${node.id}`;
+        nodeEl.style.left = `${node.x}%`;
+        nodeEl.style.top = `${node.y}%`;
+        nodeEl.style.whiteSpace = 'pre-line';
+        nodeEl.textContent = node.text;
+        nodeEl.setAttribute('role', 'treeitem');
+        return nodeEl;
+    }
+
+    function createConnection(fromNode, toNode) {
+        const connEl = document.createElement('div');
+        connEl.className = 'tree-connection';
+        connEl.id = `conn-${fromNode.id}-${toNode.id}`;
+
+        const fromX = fromNode.x, fromY = fromNode.y + 4;
+        const toX = toNode.x, toY = toNode.y - 4;
+
+        const deltaX = toX - fromX;
+        const deltaY = toY - fromY;
+        const length = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        const angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
+
+        connEl.style.width = `${length}%`;
+        connEl.style.height = '2px';
+        connEl.style.left = `${fromX}%`;
+        connEl.style.top = `${fromY}%`;
+        connEl.style.transform = `rotate(${angle}deg)`;
+        connEl.style.opacity = '0';
+
+        return connEl;
+    }
+
+    function initTree() {
+        const container = document.getElementById('treeAnimation');
+        if (!container) return;
+
+        // Очищаем предыдущий таймаут
+        if (animationTimeout) {
+            clearTimeout(animationTimeout);
+            animationTimeout = null;
+        }
+
+        container.innerHTML = '';
+        const modelId = container.dataset.model;
+        currentTreeConfig = getTreeConfig(modelId);
+
+        if (!currentTreeConfig || !currentTreeConfig.nodes) return;
+
+        // Создаем узлы
+        currentTreeConfig.nodes.forEach(node => {
+            container.appendChild(createNode(node));
+        });
+
+        // Создаем связи
+        if (currentTreeConfig.connections) {
+            currentTreeConfig.connections.forEach(([fromId, toId]) => {
+                const fromNode = currentTreeConfig.nodes.find(n => n.id === fromId);
+                const toNode = currentTreeConfig.nodes.find(n => n.id === toId);
+                if (fromNode && toNode) {
+                    container.appendChild(createConnection(fromNode, toNode));
+                }
+            });
+        }
+
+        // Скрываем все узлы кроме корневого
+        currentTreeConfig.nodes.forEach((node, index) => {
+            const el = document.getElementById(`node-${node.id}`);
+            if (el) {
+                if (index === 0) {
+                    el.style.opacity = '1';
+                    el.style.transform = 'translate(-50%, -50%) scale(1)';
+                } else {
+                    el.style.opacity = '0';
+                    el.style.transform = 'translate(-50%, -50%) scale(0.8)';
+                }
+            }
+        });
+
+        // Обновляем состояние кнопок
+        updateButtonsState(false);
+    }
+
+    function updateButtonsState(isActive) {
+        const startBtn = document.getElementById('startAnimBtn');
+        const resetBtn = document.getElementById('resetAnimBtn');
+
+        if (startBtn) {
+            startBtn.disabled = isActive;
+            startBtn.style.opacity = isActive ? '0.5' : '1';
+            if (!isActive) startBtn.classList.add('active');
+            else startBtn.classList.remove('active');
+        }
+        if (resetBtn) {
+            resetBtn.disabled = false;
+            resetBtn.style.opacity = '1';
+        }
+    }
+
+    function startAnimation() {
+        if (animationActive || !currentTreeConfig || !currentTreeConfig.nodes) return;
+
+        // Сбрасываем перед началом
+        resetAnimation();
+
+        animationActive = true;
+        currentNodeIndex = 0;
+        updateButtonsState(true);
+
+        animateStep();
+    }
+
+    function animateStep() {
+        if (!animationActive || !currentTreeConfig || currentNodeIndex >= currentTreeConfig.nodes.length) {
+            stopAnimation();
+            return;
+        }
+
+        const node = currentTreeConfig.nodes[currentNodeIndex];
+        const el = document.getElementById(`node-${node.id}`);
+
+        if (el) {
+            el.style.transition = 'all 0.3s ease';
+            el.style.opacity = '1';
+            el.style.transform = 'translate(-50%, -50%) scale(1)';
+            el.classList.add('node-highlight');
+
+            setTimeout(() => {
+                if (el) el.classList.remove('node-highlight');
+            }, 1000);
+        }
+
+        // Показываем связь с родителем
+        if (currentNodeIndex > 0 && currentTreeConfig.connections) {
+            const parentMap = {};
+            currentTreeConfig.connections.forEach(([from, to]) => {
+                parentMap[to] = from;
+            });
+            const parentId = parentMap[node.id];
+            if (parentId) {
+                const connEl = document.getElementById(`conn-${parentId}-${node.id}`);
+                if (connEl) {
+                    connEl.style.transition = 'opacity 0.3s ease';
+                    connEl.style.opacity = '1';
+                }
+            }
+        }
+
+        currentNodeIndex++;
+        animationTimeout = setTimeout(animateStep, 700);
+    }
+
+    function stopAnimation() {
+        animationActive = false;
+        if (animationTimeout) {
+            clearTimeout(animationTimeout);
+            animationTimeout = null;
+        }
+        updateButtonsState(false);
+    }
+
+    function resetAnimation() {
+        if (animationTimeout) {
+            clearTimeout(animationTimeout);
+            animationTimeout = null;
+        }
+
+        animationActive = false;
+        currentNodeIndex = 0;
+
+        if (currentTreeConfig) {
+            currentTreeConfig.nodes.forEach((node, index) => {
+                const el = document.getElementById(`node-${node.id}`);
+                if (el) {
+                    el.style.transition = 'all 0.3s ease';
+                    if (index === 0) {
+                        el.classList.remove('node-highlight');
+                        el.style.opacity = '1';
+                        el.style.transform = 'translate(-50%, -50%) scale(1)';
+                    } else {
+                        el.style.opacity = '0';
+                        el.style.transform = 'translate(-50%, -50%) scale(0.8)';
+                        el.classList.remove('node-highlight');
+                    }
+                }
+            });
+
+            if (currentTreeConfig.connections) {
+                currentTreeConfig.connections.forEach(([fromId, toId]) => {
+                    const connEl = document.getElementById(`conn-${fromId}-${toId}`);
+                    if (connEl) {
+                        connEl.style.transition = 'opacity 0.3s ease';
+                        connEl.style.opacity = '0';
+                    }
+                });
+            }
+        }
+
+        updateButtonsState(false);
+    }
+
+    // Инициализация при загрузке страницы
+    document.addEventListener('DOMContentLoaded', () => {
+        const treeContainer = document.getElementById('treeAnimation');
+        if (treeContainer) {
+            initTree();
+        }
+    });
+
+    // Очистка таймеров при выгрузке страницы
+    window.addEventListener('beforeunload', () => {
+        if (animationTimeout) {
+            clearTimeout(animationTimeout);
+            animationTimeout = null;
+        }
+    });
+</script>
+{% endblock %}
