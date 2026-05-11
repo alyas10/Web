@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import pandas as pd
 import numpy as np
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any,Callable
 import os
 
 
@@ -12,8 +12,16 @@ class BaseDataLoader(ABC):
     """
 
     @abstractmethod
-    def load(self, file_path: str) -> pd.DataFrame:
-        """Загружает файл и возвращает сырой DataFrame."""
+    def load(self, file_path: str, chunksize: int = 50000,
+             progress_callback: Optional[Callable[[int], None]] = None) -> pd.DataFrame:
+        """
+        Загружает файл и возвращает сырой DataFrame.
+
+        :param file_path: Путь к файлу.
+        :param chunksize: Размер порции (чанка) для итеративного чтения (важно для больших файлов).
+        :param progress_callback: Функция обратного вызова, которая вызывается после обработки каждого чанка.
+                                  Принимает один аргумент: количество обработанных строк.
+        """
         pass
 
     @property

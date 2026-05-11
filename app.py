@@ -11,7 +11,7 @@ def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = 'your-secret-key-here'
     app.config['UPLOAD_FOLDER'] = 'uploads'
-    app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500 MB
+    app.config['MAX_CONTENT_LENGTH'] = 1000 * 1024 * 1024  # 1000 MB
 
     # Очистка папки uploads при старте
     import os, shutil
@@ -90,5 +90,5 @@ app = create_app()
 
 if __name__ == '__main__':
     #app = create_app()
-    #print(app.url_map)
+    #print(app.url_map)f
     app.run(debug=True, host='0.0.0.0', port=5000)
