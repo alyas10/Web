@@ -15,7 +15,8 @@
                 <p class="page-subtitle">Загрузите сетевые данные для анализа</p>
             </div>
         </div>
-        <!-- ИСПРАВЛЕНО: Форма теперь отправляется на /start_analysis -->
+
+
         {% if uploaded_file %}
         <form action="{{ url_for('data.start_analysis') }}" method="post" style="display: inline;">
             <input type="hidden" name="filename" value="{{ uploaded_file.name }}">
@@ -65,6 +66,34 @@
                 </label>
             </div>
         </form>
+        <!-- Progress Bar (скрыт по умолчанию) -->
+       <div id="progressContainer" class="card" style="display: none;">
+           <div class="card-header">
+               <h3 class="card-title">Обработка файла</h3>
+           </div>
+       <div class="card-content">
+             <div class="progress-bar" style="width: 100%; height: 20px; background: #e0e0e0; border-radius: 10px; overflow: hidden;">
+             <div id="progressFill" class="progress-fill" style="width: 0%; height: 100%; background: #2196F3; transition: width 0.3s;"></div>
+        </div>
+        <p id="progressText" style="text-align: center; margin-top: 10px;">0%</p>
+        </div>
+      </div>
+
+        <!-- Uploaded Files List (скрыт по умолчанию, показывается если есть файлы) -->
+         <div id="uploadedFilesContainer" class="card" style="display: none;">
+    <div class="card-header">
+        <h3 class="card-title">Ранее загруженные файлы</h3>
+        <p class="card-subtitle">Выберите файл для анализа</p>
+    </div>
+    <div class="card-content">
+        <div id="filesList" class="files-list">
+            <!-- Сюда будут добавляться файлы через JS -->
+        </div>
+        <div id="filesEmpty" class="text-center text-muted" style="display: none;">
+            <p>Нет ранее загруженных файлов</p>
+        </div>
+    </div>
+      </div>
 
         {% if uploaded_file %}
         <!-- File Status -->
@@ -238,10 +267,112 @@
 
 
 <script>
+/*    // При загрузке страницы проверяем, есть ли сохраненные данные
+document.addEventListener('DOMContentLoaded', function() {
+    const savedData = sessionStorage.getItem('processedData');
+    if (savedData) {
+        // Данные есть - можно показать их (опционально, если нужно мгновенное отображение)
+        // Но обычно достаточно просто перезагрузки страницы, которая подгрузит данные из session
+        sessionStorage.removeItem('processedData'); // Очищаем после использования
+    }
+}); */
+
 const uploadZone = document.getElementById('uploadZone');
 const fileInput = document.getElementById('fileInput');
 const uploadForm = document.getElementById('uploadForm');
+const progressContainer = document.getElementById('progressContainer');
+const progressFill = document.getElementById('progressFill');
+const progressText = document.getElementById('progressText');
 
+let pollInterval = null;
+
+// Функция для отправки файла через AJAX
+async function uploadFileWithProgress(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        // Показываем прогресс-бар
+        progressContainer.style.display = 'block';
+        progressFill.style.width = '0%';
+        progressText.textContent = '0%';
+
+        // Отправляем файл
+        const response = await fetch("{{ url_for('data.upload_file') }}", {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'started' && result.session_id) {
+            // Начинаем поллинг прогресса
+            startPolling(result.session_id);
+        } else {
+            throw new Error(result.error || 'Неизвестная ошибка');
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки:', error);
+        progressText.textContent = 'Ошибка: ' + error.message;
+        progressFill.style.background = '#dc2626'; // Красный
+    }
+}
+
+// Функция для опроса статуса
+function startPolling(sessionId) {
+    const progressUrl = `/data/progress/${sessionId}`;
+const resultsUrl = `/data/results/${sessionId}`;
+
+    pollInterval = setInterval(async () => {
+        try {
+            const response = await fetch(progressUrl);
+            const data = await response.json();
+
+            if (data.status === 'processing') {
+                progressFill.style.width = data.percent + '%';
+                progressText.textContent = data.percent + '%';
+            } else if (data.status === 'completed') {
+                // Обработка завершена - теперь получаем результаты
+                clearInterval(pollInterval);
+                progressFill.style.width = '100%';
+                progressText.textContent = '100% - Загрузка результатов...';
+
+                // Запрашиваем результаты
+                const resultsUrl = "{{ url_for('data.get_results', session_id='SESSION_ID') }}".replace('SESSION_ID', sessionId);
+                const resultsResponse = await fetch(resultsUrl);
+                const resultsData = await resultsResponse.json();
+                if (resultsData.status === 'success') {
+                // Перенаправляем на /data с session_id, чтобы бэкенд подгрузил результаты
+                   setTimeout(() => {
+                      window.location.href = `/data?session_id=${sessionId}`;
+                    }, 500);
+                  }
+                 else {
+                    progressText.textContent = 'Ошибка: ' + (resultsData.error || 'Не удалось загрузить результаты');
+                    progressFill.style.background = '#dc2626';
+                }
+            } else if (data.status === 'error') {
+                clearInterval(pollInterval);
+                progressText.textContent = 'Ошибка: ' + (data.message || 'Неизвестная ошибка');
+                progressFill.style.background = '#dc2626';
+            }
+        } catch (error) {
+            console.error('Ошибка поллинга:', error);
+            clearInterval(pollInterval);
+        }
+    }, 1000);
+}
+
+// Обработчик отправки формы
+uploadForm.addEventListener('submit', async (e) => {
+    e.preventDefault(); // Отменяем стандартную отправку
+
+    if (fileInput.files.length > 0) {
+        await uploadFileWithProgress(fileInput.files[0]);
+    }
+});
+
+// Обработчики drag'n'drop
 uploadZone.addEventListener('dragover', (e) => {
     e.preventDefault();
     uploadZone.classList.add('dragging');
@@ -253,15 +384,132 @@ uploadZone.addEventListener('drop', (e) => {
     e.preventDefault();
     uploadZone.classList.remove('dragging');
     if (e.dataTransfer.files.length > 0) {
-        fileInput.files = e.dataTransfer.files;
-        uploadForm.submit();
+        uploadFileWithProgress(e.dataTransfer.files[0]);
     }
 });
 
 fileInput.addEventListener('change', () => {
     if (fileInput.files.length > 0) {
-        uploadForm.submit();
+        uploadFileWithProgress(fileInput.files[0]);
     }
+});
+
+    // Функция для загрузки и отображения списка файлов
+async function loadUploadedFiles() {
+    try {
+        const response = await fetch('/data/files');
+        const data = await response.json();
+
+        const container = document.getElementById('uploadedFilesContainer');
+        const filesList = document.getElementById('filesList');
+        const filesEmpty = document.getElementById('filesEmpty');
+
+        if (data.files && data.files.length > 0) {
+            container.style.display = 'block';
+            filesEmpty.style.display = 'none';
+            filesList.innerHTML = '';
+
+            data.files.forEach(file => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+
+                // Определяем иконку по расширению
+                const extClass = file.ext.replace('.', '') || 'other';
+
+                fileItem.innerHTML = `
+                    <div class="file-info">
+                        <div class="file-icon ${extClass}">${file.ext.toUpperCase().slice(0, 4)}</div>
+                        <div class="file-details">
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-meta">
+                                ${file.size_mb} MB • ${file.modified}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="file-actions">
+                        <button class="btn btn-secondary btn-select" onclick="selectFile('${file.name}')">
+                            Выбрать
+                        </button>
+                    </div>
+                `;
+                filesList.appendChild(fileItem);
+            });
+        } else {
+            container.style.display = 'none';
+            filesEmpty.style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки списка файлов:', error);
+    }
+}
+
+// Функция для выбора файла
+async function selectFile(filename) {
+    try {
+        // Показываем индикатор загрузки
+        const btn = event.target;
+        const originalText = btn.textContent;
+        btn.textContent = 'Загрузка...';
+        btn.disabled = true;
+
+        const response = await fetch(`/data/select_file/${filename}`, {
+            method: 'POST'
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            // Обновляем интерфейс с данными выбранного файла
+            document.getElementById('progressContainer').style.display = 'none';
+
+            // Обновляем блок статуса файла
+            const fileStatus = document.querySelector('.file-status');
+            if (fileStatus) {
+                fileStatus.querySelector('.file-name span').textContent = result.file_info.name;
+                fileStatus.querySelector('.file-details').innerHTML =
+                    `Размер: ${result.file_info.size_mb} MB • Выбран для анализа`;
+            }
+
+            const analysisFilenameInput = document.getElementById('analysisFilename');
+             if (analysisFilenameInput) {
+               analysisFilenameInput.value = result.filename;
+               }
+            // Обновляем таблицу предпросмотра
+            if (result.sample_data && result.columns) {
+                // Здесь можно добавить логику обновления таблицы без перезагрузки
+                // Для простоты просто перезагружаем страницу
+                const sessionId = result.uploaded_file_info?.session_id || Date.now().toString();
+                window.location.href = `/data?session_id=${sessionId}`;
+            }
+
+            // Активируем кнопку анализа
+            const analyzeBtn = document.querySelector('form[action*="start_analysis"] button');
+            if (analyzeBtn) {
+                analyzeBtn.disabled = false;
+                analyzeBtn.style.opacity = '1';
+                analyzeBtn.style.cursor = 'pointer';
+            }
+
+        } else {
+            throw new Error(result.error || 'Неизвестная ошибка');
+        }
+    } catch (error) {
+        console.error('Ошибка выбора файла:', error);
+        alert('Ошибка: ' + error.message);
+    } finally {
+        // Восстанавливаем кнопку
+        const btn = event.target;
+        if (btn) {
+            btn.textContent = 'Выбрать';
+            btn.disabled = false;
+        }
+    }
+}
+
+// Загружаем список файлов при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    loadUploadedFiles();
+
 });
 </script>
 {% endblock %}
