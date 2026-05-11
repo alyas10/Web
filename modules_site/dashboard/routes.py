@@ -32,6 +32,17 @@ def _label_color(label: str) -> str:
 @bp.route('/')
 @bp.route('/dashboard')
 def dashboard():
+    # Модели для отображения в разделе "Активные модели" с описанием
+    active_models = [
+        {'name': 'LightGBM',
+         'description': 'Gradient boosting framework с высокой производительностью. Эффективен при обнаружении аномалий в сетевом трафике.'},
+        {'name': 'XGBoost',
+         'description': 'Оптимизированный gradient boosting алгоритм. Показывает высокую точность в задачах классификации сложных паттернов атак.'},
+        {'name': 'Random Forest',
+         'description': 'Ансамбль деревьев решений. Устойчив к переобучению, хорошо работает с высокоразмерными данными.'},
+        {'name': 'Isolation Forest',
+         'description': 'Unsupervised алгоритм для обнаружения аномалий. Идеален для выявления новых типов атак без разметки.'},
+    ]
     analysis_results = session.get('analysis_results')
     analysis_loaded = bool(analysis_results)
     if analysis_loaded:
@@ -76,4 +87,5 @@ def dashboard():
         threat_distribution=threat_distribution,
         analysis_loaded=analysis_loaded,
         analysis_results=analysis_results,
+        active_models=active_models,
     )
