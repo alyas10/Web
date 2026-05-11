@@ -120,6 +120,53 @@ code, pre, .font-mono {
   width: 1.25rem;
   height: 1.25rem;
 }
+.tooltip-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--es-text-secondary);
+  margin-left: auto;
+  opacity: 0.6;
+  transition: all 0.2s;
+}
+
+.tooltip-trigger:hover .tooltip-icon {
+  color: var(--es-accent);
+  opacity: 1;
+}
+.tooltip-trigger::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  background: var(--es-bg-primary);
+  border: 1px solid var(--es-border);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  color: var(--es-text-primary);
+  white-space: nowrap;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+.tooltip-trigger:hover::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-12px);
+}
+
+/* Tooltip styles for dashboard active models */
+.tooltip-trigger {
+  position: relative;
+}
+
 
 .sidebar-footer {
   padding: 1rem;
