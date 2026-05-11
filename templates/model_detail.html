@@ -6,263 +6,376 @@
 {% block extra_css %}
 <style>
     :root {
-        --bg-primary: #111827;
-        --bg-secondary: #1f2937;
-        --bg-tertiary: #374151;
-        --text-primary: #f9fafb;
-        --text-secondary: #9ca3af;
-        --accent: #3b82f6;
+        /* Цветовая палитра */
+        --bg-primary: #0f172a;
+        --bg-secondary: #1e293b;
+        --bg-tertiary: #334155;
+        --bg-hover: #334155;
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+        --text-muted: #64748b;
+        --accent-primary: #3b82f6;
+        --accent-secondary: #6366f1;
         --accent-hover: #2563eb;
         --success: #10b981;
         --warning: #f59e0b;
         --danger: #ef4444;
-        --border-radius: 12px;
-        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-        --transition: all 0.2s ease-in-out;
+        --info: #06b6d4;
+
+        /* Типографика */
+        --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        --font-mono: 'Roboto Mono', 'Fira Code', monospace;
+        --font-size-xs: 0.75rem;
+        --font-size-sm: 0.875rem;
+        --font-size-base: 1rem;
+        --font-size-lg: 1.125rem;
+        --font-size-xl: 1.25rem;
+        --font-size-2xl: 1.5rem;
+        --font-size-3xl: 1.875rem;
+        --font-weight-normal: 400;
+        --font-weight-medium: 500;
+        --font-weight-semibold: 600;
+        --font-weight-bold: 700;
+
+        /* Отступы и размеры */
+        --border-radius-sm: 8px;
+        --border-radius-md: 12px;
+        --border-radius-lg: 16px;
+        --border-radius-full: 9999px;
+        --spacing-xs: 0.25rem;
+        --spacing-sm: 0.5rem;
+        --spacing-md: 1rem;
+        --spacing-lg: 1.5rem;
+        --spacing-xl: 2rem;
+        --spacing-2xl: 3rem;
+
+        /* Эффекты */
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+        --transition-fast: 150ms ease;
+        --transition-normal: 250ms ease;
+        --transition-slow: 350ms ease;
     }
 
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+        font-family: var(--font-family);
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        line-height: 1.6;
+    }
 
     .model-detail-container {
         max-width: 1400px;
         margin: 0 auto;
-        padding: 1.5rem;
-        color: var(--text-primary);
+        padding: var(--spacing-xl);
     }
 
+    /* Кнопка "Назад" */
     .back-link {
         display: inline-flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: var(--spacing-sm);
         color: var(--text-secondary);
         text-decoration: none;
-        font-size: 0.95rem;
-        padding: 0.5rem 1rem;
-        border-radius: var(--border-radius);
-        transition: var(--transition);
-        margin-bottom: 1.5rem;
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-medium);
+        padding: var(--spacing-sm) var(--spacing-md);
+        border-radius: var(--border-radius-md);
+        transition: var(--transition-normal);
+        margin-bottom: var(--spacing-lg);
+        background: transparent;
+        border: 1px solid transparent;
     }
 
     .back-link:hover {
-        color: var(--accent);
+        color: var(--accent-primary);
         background: var(--bg-secondary);
-        transform: translateX(-4px);
+        border-color: var(--bg-tertiary);
+        transform: translateX(-2px);
     }
 
-    .model-detail-header {
-        display: flex;
-        align-items: center;
-        gap: 1.5rem;
-        padding: 1.5rem;
-        background: var(--bg-secondary);
-        border-radius: var(--border-radius);
-        margin-bottom: 2rem;
-        box-shadow: var(--shadow);
-    }
-
-    .model-detail-icon {
-        width: 64px;
-        height: 64px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-        border-radius: 16px;
-        color: white;
+    .back-link svg {
+        width: 18px;
+        height: 18px;
         flex-shrink: 0;
     }
 
-    .model-detail-icon svg { width: 32px; height: 32px; }
+    /* Заголовок модели */
+    .model-detail-header {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-md);  /* Было var(--spacing-lg) */
+    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+    border-radius: var(--border-radius-lg);
+    margin-bottom: var(--spacing-lg);  /* Было var(--spacing-2xl) */
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--bg-tertiary);
+    }
+
+    .model-detail-icon {
+        width: 72px;
+        height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+        border-radius: var(--border-radius-md);
+        color: white;
+        flex-shrink: 0;
+        box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+    }
+
+    .model-detail-icon svg {
+        width: 36px;
+        height: 36px;
+    }
 
     .model-detail-title {
-        font-size: 1.75rem;
-        font-weight: 700;
-        margin: 0 0 0.25rem 0;
+        font-size: var(--font-size-3xl);
+        font-weight: var(--font-weight-bold);
+        margin: 0 0 var(--spacing-xs) 0;
         color: var(--text-primary);
+        letter-spacing: -0.025em;
     }
 
     .model-detail-subtitle {
-        font-size: 1.1rem;
+        font-size: var(--font-size-lg);
         color: var(--text-secondary);
-        margin: 0;
+        margin: 0 0 var(--spacing-sm) 0;
+        font-weight: var(--font-weight-normal);
+        max-width: 600px;
     }
 
     .model-source {
-        color: var(--text-secondary);
-        font-size: 0.85rem;
-        margin-top: 0.5rem;
-        display: block;
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        background: var(--bg-primary);
+        border-radius: var(--border-radius-full);
     }
 
+    .model-source svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    /* Сетка контента */
     .model-detail-grid {
         display: grid;
         grid-template-columns: 2fr 1fr;
-        gap: 1.5rem;
+        gap: var(--spacing-xl);
     }
 
     @media (max-width: 1024px) {
         .model-detail-grid { grid-template-columns: 1fr; }
     }
 
+    /* Секции */
     .detail-section {
-        background: var(--bg-secondary);
-        border-radius: var(--border-radius);
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        box-shadow: var(--shadow);
-        transition: var(--transition);
-    }
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--bg-tertiary);
+    transition: var(--transition-normal);
+
+    /*  чтобы блок растягивался по ширине заголовка */
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
 
     .detail-section:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.4);
+        box-shadow: var(--shadow-lg);
+        border-color: var(--accent-primary);
     }
 
-    .section-title {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin: 0 0 1rem 0;
-        padding-bottom: 0.75rem;
-        border-bottom: 1px solid var(--bg-tertiary);
-    }
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-md) 0;
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--bg-tertiary);
+
+    /* заголовок занимал всю ширину блока */
+    width: 100%;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
 
     .section-title svg {
-        width: 20px;
-        height: 20px;
-        color: var(--accent);
+        width: 22px;
+        height: 22px;
         flex-shrink: 0;
     }
 
+    /* Уникальные цвета иконок для секций */
+    .section-title .icon-how { color: var(--info); }
+    .section-title .icon-viz { color: var(--accent-secondary); }
+    .section-title .icon-adv { color: var(--warning); }
+    .section-title .icon-sec { color: var(--success); }
+    .section-title .icon-info { color: var(--accent-primary); }
+    .section-title .icon-params { color: var(--warning); }
+    .section-title .icon-features { color: var(--info); }
+
     .detail-content {
         color: var(--text-secondary);
-        line-height: 1.6;
+        line-height: 1.7;
+        font-size: var(--font-size-base);
     }
 
     .detail-content h4 {
         color: var(--text-primary);
-        margin: 1.25rem 0 0.75rem 0;
-        font-size: 1.1rem;
+        margin: var(--spacing-lg) 0 var(--spacing-sm) 0;
+        font-size: var(--font-size-lg);
+        font-weight: var(--font-weight-semibold);
     }
 
     .detail-content ul,
     .detail-content ol {
-        padding-left: 1.5rem;
-        margin: 0.5rem 0;
+        padding-left: var(--spacing-lg);
+        margin: var(--spacing-sm) 0;
     }
 
-    .detail-content li { margin: 0.35rem 0; }
+    .detail-content li {
+        margin: var(--spacing-xs) 0;
+        position: relative;
+    }
+
+    .detail-content li::marker {
+        color: var(--accent-primary);
+    }
 
     .detail-content a {
-        color: var(--accent);
+        color: var(--accent-primary);
         text-decoration: none;
+        font-weight: var(--font-weight-medium);
+        transition: var(--transition-fast);
     }
 
-    .detail-content a:hover { text-decoration: underline; }
+    .detail-content a:hover {
+        color: var(--accent-hover);
+        text-decoration: underline;
+    }
 
     /* Анимация дерева */
     .animation-container {
         position: relative;
         background: var(--bg-primary);
-        border-radius: var(--border-radius);
-        padding: 1rem;
-        min-height: 450px;
+        border-radius: var(--border-radius-md);
+        padding: var(--spacing-md);
+        min-height: 480px;
         overflow: hidden;
+        border: 1px solid var(--bg-tertiary);
     }
 
     .tree-animation {
         position: relative;
         width: 100%;
-        height: 400px;
-        background: radial-gradient(ellipse at center, var(--bg-secondary) 0%, var(--bg-primary) 70%);
-        border-radius: 8px;
+        height: 420px;
+        background: radial-gradient(ellipse at center, var(--bg-secondary) 0%, var(--bg-primary) 75%);
+        border-radius: var(--border-radius-sm);
         overflow: visible;
     }
 
     .tree-node {
         position: absolute;
-        padding: 0.5rem 0.75rem;
+        padding: var(--spacing-sm) var(--spacing-md);
         background: var(--bg-tertiary);
-        border: 2px solid var(--accent);
-        border-radius: 8px;
-        font-size: 0.75rem;
+        border: 2px solid var(--accent-primary);
+        border-radius: var(--border-radius-sm);
+        font-size: var(--font-size-xs);
         color: var(--text-primary);
         text-align: center;
-        transform: translate(-50%, -50%) scale(0.8);
+        transform: translate(-50%, -50%) scale(0.85);
         opacity: 0;
-        transition: all 0.3s ease;
-        min-width: 90px;
-        max-width: 130px;
+        transition: all var(--transition-normal);
+        min-width: 100px;
+        max-width: 140px;
         z-index: 2;
         cursor: default;
         backdrop-filter: blur(4px);
         user-select: none;
+        font-weight: var(--font-weight-medium);
     }
 
     .tree-node.root {
-        background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
         border-color: transparent;
-        font-weight: 600;
-        min-width: 110px;
+        font-weight: var(--font-weight-bold);
+        min-width: 120px;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
     }
 
     .tree-node.leaf {
         border-color: var(--success);
         background: rgba(16, 185, 129, 0.15);
-        backdrop-filter: blur(4px);
+        color: var(--success);
     }
 
     .tree-node.node-highlight {
-        animation: pulse 0.8s ease-in-out;
-        box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+        animation: pulse 0.6s ease-in-out;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5), 0 4px 20px rgba(59, 130, 246, 0.4);
     }
 
     @keyframes pulse {
         0%, 100% { transform: translate(-50%, -50%) scale(1); }
-        50% { transform: translate(-50%, -50%) scale(1.08); }
+        50% { transform: translate(-50%, -50%) scale(1.05); }
     }
 
     .tree-connection {
         position: absolute;
         height: 2px;
-        background: linear-gradient(90deg, var(--accent), var(--bg-tertiary));
+        background: linear-gradient(90deg, var(--accent-primary), var(--bg-tertiary));
         transform-origin: left center;
         opacity: 0;
-        transition: opacity 0.3s ease;
+        transition: opacity var(--transition-normal);
         z-index: 1;
         pointer-events: none;
     }
 
     .animation-controls {
         display: flex;
-        gap: 0.75rem;
-        margin-top: 1rem;
+        gap: var(--spacing-sm);
+        margin-top: var(--spacing-md);
         justify-content: center;
     }
 
     .anim-btn {
         display: inline-flex;
         align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1.25rem;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-sm) var(--spacing-lg);
         background: var(--bg-tertiary);
-        border: 1px solid var(--accent);
-        border-radius: 8px;
+        border: 1px solid var(--bg-tertiary);
+        border-radius: var(--border-radius-md);
         color: var(--text-primary);
-        font-size: 0.9rem;
-        font-weight: 500;
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-medium);
         cursor: pointer;
-        transition: var(--transition);
+        transition: var(--transition-normal);
     }
 
-    .anim-btn:hover,
+    .anim-btn:hover:not(:disabled),
     .anim-btn.active {
-        background: var(--accent);
+        background: var(--accent-primary);
         color: white;
-        border-color: transparent;
+        border-color: var(--accent-primary);
+        transform: translateY(-1px);
     }
 
     .anim-btn:disabled {
@@ -270,93 +383,211 @@
         cursor: not-allowed;
     }
 
-    .anim-btn svg { width: 16px; height: 16px; }
+    .anim-btn svg {
+        width: 16px;
+        height: 16px;
+    }
 
     /* Сайдбар */
     .sidebar .detail-section:first-child {
         position: sticky;
-        top: 1.5rem;
+        top: var(--spacing-lg);
+        z-index: 10;
     }
 
     .info-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.75rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-sm);
+
+    /* чтобы сетка занимала всю ширину родителя */
+     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.info-item {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-primary);
+    border-radius: var(--border-radius-sm);
+    transition: var(--transition-fast);
+    border: 1px solid transparent;
+
+    /* ИСПРАВЛЕНО: разрешаем перенос слов */
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    hyphens: auto;
+
+    /* чтобы элемент занимал всю ширину ячейки сетки */
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    min-width: 0; /* Позволяет сжиматься при переполнении */
+
+    min-height: 70px; /* Немного уменьшили */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    /* Предотвращаем выход за границы */
+    overflow: hidden;
+}
+
+
+    .info-item:hover {
+        background: var(--bg-tertiary);
+        border-color: var(--accent-primary);
     }
 
-    .info-item {
-        padding: 0.75rem;
-        background: var(--bg-primary);
-        border-radius: 8px;
-        transition: var(--transition);
-    }
+.info-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: var(--font-weight-medium);
 
-    .info-item:hover { background: var(--bg-tertiary); }
+    /* НОВОЕ: разрешаем перенос только для коротких меток */
+    word-break: normal;
+    overflow-wrap: break-word;
+    hyphens: none;
+}
+.info-value {
+    font-size: var(--font-size-sm); /* Уменьшили шрифт */
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
 
-    .info-label {
-        font-size: 0.75rem;
-        color: var(--text-secondary);
-        margin-bottom: 0.25rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
+    /* ИСПРАВЛЕНО: разрешаем перенос */
+    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    line-height: 1.3;
 
-    .info-value {
-        font-size: 1rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        word-break: break-word;
-    }
+    /* Для длинных значений разрешаем перенос */
+    white-space: normal;
+
+    /* Ограничиваем ширину */
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Добавляем многоточие если не влезает */
+}
 
     .success-value { color: var(--success); }
+    .warning-value { color: var(--warning); }
+    .danger-value { color: var(--danger); }
 
-    .feature-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
+    /* Параметры */
+    .param-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px dashed var(--bg-tertiary);
+
+    /* НОВОЕ */
+    width: 100%;
+    box-sizing: border-box;
+}
+
+    .param-item:last-child {
+        border-bottom: none;
     }
 
+    .param-name {
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+        font-family: var(--font-mono);
+    }
+
+    .param-value {
+        font-size: var(--font-size-sm);
+        color: var(--text-primary);
+        font-weight: var(--font-weight-medium);
+        font-family: var(--font-mono);
+        text-align: right;
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Признаки */
+    .feature-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+
+    /* НОВОЕ */
+    width: 100%;
+    box-sizing: border-box;
+}
+
     .feature-tag {
-        padding: 0.35rem 0.75rem;
+        padding: var(--spacing-xs) var(--spacing-sm);
         background: var(--bg-primary);
         border: 1px solid var(--bg-tertiary);
-        border-radius: 20px;
-        font-size: 0.8rem;
+        border-radius: var(--border-radius-full);
+        font-size: var(--font-size-xs);
         color: var(--text-secondary);
-        transition: var(--transition);
+        transition: var(--transition-fast);
+        font-family: var(--font-mono);
     }
 
     .feature-tag:hover {
-        border-color: var(--accent);
-        color: var(--accent);
+        border-color: var(--accent-primary);
+        color: var(--accent-primary);
         background: rgba(59, 130, 246, 0.1);
         transform: translateY(-1px);
     }
 
-    .text-muted { color: var(--text-secondary); }
+    .text-muted { color: var(--text-muted); }
 
     /* Адаптивность */
     @media (max-width: 768px) {
+        .model-detail-container { padding: var(--spacing-lg); }
+
         .model-detail-header {
             flex-direction: column;
             text-align: center;
+            align-items: center;
         }
+
         .info-grid { grid-template-columns: 1fr; }
-        .animation-container { min-height: 380px; }
-        .tree-animation { height: 320px; }
+
+        .animation-container { min-height: 400px; }
+        .tree-animation { height: 340px; }
+
         .tree-node {
-            font-size: 0.7rem;
-            min-width: 70px;
-            padding: 0.35rem 0.5rem;
+            font-size: 0.65rem;
+            min-width: 80px;
+            padding: var(--spacing-xs) var(--spacing-sm);
         }
+
+        .section-title { font-size: var(--font-size-lg); }
+        .model-detail-title { font-size: var(--font-size-2xl); }
     }
 
     @media (max-width: 480px) {
-        .model-detail-container { padding: 1rem; }
-        .detail-section { padding: 1rem; }
+        .model-detail-container { padding: var(--spacing-md); }
+        .detail-section { padding: var(--spacing-md); }
         .animation-controls { flex-direction: column; }
-        .anim-btn { justify-content: center; }
+        .anim-btn { justify-content: center; width: 100%; }
+        .param-item { flex-direction: column; align-items: flex-start; gap: var(--spacing-xs); }
+        .param-value { text-align: left; max-width: none; }
     }
+
+    /* Утилиты */
+    .mb-sm { margin-bottom: var(--spacing-sm); }
+    .mb-md { margin-bottom: var(--spacing-md); }
+    .mb-lg { margin-bottom: var(--spacing-lg); }
+    .mt-sm { margin-top: var(--spacing-sm); }
+    .mt-md { margin-top: var(--spacing-md); }
+    .text-center { text-align: center; }
+    .font-mono { font-family: var(--font-mono); }
+    .font-semibold { font-weight: var(--font-weight-semibold); }
+    .text-accent { color: var(--accent-primary); }
 </style>
 {% endblock %}
 
@@ -364,8 +595,8 @@
 <div class="model-detail-container">
     {# Кнопка "Назад" #}
     <a href="{{ url_for('models.models') }}" class="back-link" aria-label="Вернуться к списку моделей">
-        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
         </svg>
         Назад к моделям
     </a>
@@ -373,18 +604,21 @@
     {# Заголовок модели #}
     <div class="model-detail-header">
         <div class="model-detail-icon" aria-hidden="true">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+            {# Иконка: Chip / CPU для модели #}
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 012.25 2.25v10.5a2.25 2.25 0 01-2.25 2.25H6.75a2.25 2.25 0 01-2.25-2.25V6.75a2.25 2.25 0 012.25-2.25z"/>
             </svg>
         </div>
         <div>
             <h1 class="model-detail-title">{{ model.name }}</h1>
-            <p class="model-detail-subtitle">{{ model.tagline | default('Модель машинного обучения для сетевой безопасности') }}</p>
+            <p class="model-detail-subtitle">{{ model.tagline | default('Модель машинного обучения для анализа сетевого трафика и обнаружения аномалий') }}</p>
             {% if model.source %}
-            <small class="model-source">
-                📚 Источник: {{ model.source }}{% if model.model_type_raw %} • {{ model.model_type_raw }}{% endif %}
-            </small>
+            <span class="model-source">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+                </svg>
+                {{ model.source }}{% if model.model_type_raw %} • {{ model.model_type_raw }}{% endif %}
+            </span>
             {% endif %}
         </div>
     </div>
@@ -395,11 +629,11 @@
             {# Как работает модель #}
             <div class="detail-section">
                 <h2 class="section-title">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                    {# Иконка: Lightbulb / Idea #}
+                    <svg class="icon-how" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/>
                     </svg>
-                    Как работает {{ model.name }}
+                    Принцип работы
                 </h2>
                 <div class="detail-content">
                     {{ model.how_it_works | safe }}
@@ -410,30 +644,26 @@
             {% if model.has_tree_viz %}
             <div class="detail-section">
                 <h2 class="section-title">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    {# Иконка: Git Branch / Network #}
+                    <svg class="icon-viz" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
                     </svg>
-                    Визуализация процесса принятия решений
+                    Визуализация дерева решений
                 </h2>
                 <div class="animation-container">
-                    <div class="tree-animation" id="treeAnimation" data-model="{{ model.id }}" role="img" aria-label="Визуализация дерева решений">
+                    <div class="tree-animation" id="treeAnimation" data-model="{{ model.id }}" role="img" aria-label="Анимированная визуализация дерева принятия решений">
                         <!-- Узлы генерируются через JS -->
                     </div>
                     <div class="animation-controls">
-                        <button class="anim-btn" id="startAnimBtn" onclick="startAnimation()" aria-label="Запустить анимацию">
-                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        <button class="anim-btn" id="startAnimBtn" onclick="startAnimation()" aria-label="Запустить анимацию дерева">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z"/>
                             </svg>
                             Запустить
                         </button>
                         <button class="anim-btn" id="resetAnimBtn" onclick="resetAnimation()" aria-label="Сбросить анимацию">
-                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/>
                             </svg>
                             Сбросить
                         </button>
@@ -446,10 +676,11 @@
             {% if model.advantages %}
             <div class="detail-section">
                 <h2 class="section-title">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    {# Иконка: Star / Trophy #}
+                    <svg class="icon-adv" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/>
                     </svg>
-                    Преимущества
+                    Ключевые преимущества
                 </h2>
                 <div class="detail-content">
                     <ul>
@@ -464,11 +695,11 @@
             {# Применение в безопасности #}
             <div class="detail-section">
                 <h2 class="section-title">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    {# Иконка: Shield Check / Security #}
+                    <svg class="icon-sec" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043c.966.677 1.596 1.8 1.596 3.068v.001z"/>
                     </svg>
-                    Применение в сетевой безопасности
+                    Применение в кибербезопасности
                 </h2>
                 <div class="detail-content">
                     {{ model.security_application | safe }}
@@ -481,16 +712,16 @@
             {# Информация о модели #}
             <div class="detail-section">
                 <h2 class="section-title">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    {# Иконка: Information Circle #}
+                    <svg class="icon-info" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/>
                     </svg>
                     Характеристики
                 </h2>
                 <div class="info-grid">
                     <div class="info-item">
-                        <div class="info-label">Тип</div>
-                        <div class="info-value">{{ model.type | default('Не указан') }}</div>
+                        <div class="info-label">Тип модели</div>
+                        <div class="info-value">{{ model.type | default('—') }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Скорость</div>
@@ -498,7 +729,9 @@
                     </div>
                     <div class="info-item">
                         <div class="info-label">Точность</div>
-                        <div class="info-value {% if '96' in model.accuracy|string or 'высок' in model.accuracy|lower %}success-value{% endif %}">{{ model.accuracy | default('—') }}</div>
+                        <div class="info-value {% if '9' in model.accuracy|string %}success-value{% elif '8' in model.accuracy|string %}warning-value{% elif 'N/A' in model.accuracy %}text-muted{% else %}danger-value{% endif %}">
+                            {{ model.accuracy | default('—') }}
+                        </div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Сложность</div>
@@ -511,18 +744,16 @@
             {% if model.params %}
             <div class="detail-section">
                 <h2 class="section-title">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    {# Иконка: Adjustments / Cog #}
+                    <svg class="icon-params" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/>
                     </svg>
-                    Ключевые параметры
+                    Гиперпараметры
                 </h2>
                 {% for param_name, param_value in model.params.items() %}
-                <div class="info-item" style="margin-bottom: 0.75rem;">
-                    <div class="info-label">{{ param_name | replace('_', ' ') | title }}</div>
-                    <div class="info-value">{{ param_value }}</div>
+                <div class="param-item">
+                    <span class="param-name">{{ param_name | replace('_', ' ') | title }}</span>
+                    <span class="param-value">{{ param_value }}</span>
                 </div>
                 {% endfor %}
             </div>
@@ -532,15 +763,16 @@
             {% if model.features %}
             <div class="detail-section">
                 <h2 class="section-title">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                    {# Иконка: Tag / List #}
+                    <svg class="icon-features" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z"/>
                     </svg>
-                    Анализируемые признаки
+                    Признаки (топ-10)
                 </h2>
                 <div class="feature-list">
                     {% for feature in model.features %}
-                    <span class="feature-tag">{{ feature }}</span>
+                    <span class="feature-tag" title="{{ feature }}">{{ feature }}</span>
                     {% endfor %}
                 </div>
             </div>
@@ -549,10 +781,9 @@
     </div>
 </div>
 
-{# JS для анимации дерева — ИСПРАВЛЕННАЯ ВЕРСИЯ #}
+{# JS для анимации дерева #}
 <script>
     // Конфигурации деревьев для разных типов моделей
-    // ✅ ИСПРАВЛЕНО: синтаксическая ошибка в random_forest (id: 4: → id: 4,)
     const treeConfigs = {
         'lightgbm': {
             nodes: [
@@ -583,7 +814,7 @@
                 { id: 1, type: 'root', text: 'Корень\nbytes_out > 1000', x: 50, y: 10 },
                 { id: 2, type: 'node', text: 'protocol == 6', x: 30, y: 35 },
                 { id: 3, type: 'node', text: 'duration > 10s', x: 70, y: 35 },
-                { id: 4, type: 'leaf', text: 'Malicious\n(89%)', x: 20, y: 60 },  // ✅ FIX: было "id: 4: type:"
+                { id: 4, type: 'leaf', text: 'Malicious\n(89%)', x: 20, y: 60 },
                 { id: 5, type: 'leaf', text: 'Suspicious\n(76%)', x: 40, y: 60 },
                 { id: 6, type: 'leaf', text: 'Benign\n(99%)', x: 70, y: 60 }
             ],
@@ -641,7 +872,6 @@
         const container = document.getElementById('treeAnimation');
         if (!container) return;
 
-        // Очищаем предыдущий таймаут
         if (animationTimeout) {
             clearTimeout(animationTimeout);
             animationTimeout = null;
@@ -653,12 +883,10 @@
 
         if (!currentTreeConfig || !currentTreeConfig.nodes) return;
 
-        // Создаем узлы
         currentTreeConfig.nodes.forEach(node => {
             container.appendChild(createNode(node));
         });
 
-        // Создаем связи
         if (currentTreeConfig.connections) {
             currentTreeConfig.connections.forEach(([fromId, toId]) => {
                 const fromNode = currentTreeConfig.nodes.find(n => n.id === fromId);
@@ -669,7 +897,6 @@
             });
         }
 
-        // Скрываем все узлы кроме корневого
         currentTreeConfig.nodes.forEach((node, index) => {
             const el = document.getElementById(`node-${node.id}`);
             if (el) {
@@ -678,12 +905,11 @@
                     el.style.transform = 'translate(-50%, -50%) scale(1)';
                 } else {
                     el.style.opacity = '0';
-                    el.style.transform = 'translate(-50%, -50%) scale(0.8)';
+                    el.style.transform = 'translate(-50%, -50%) scale(0.85)';
                 }
             }
         });
 
-        // Обновляем состояние кнопок
         updateButtonsState(false);
     }
 
@@ -705,14 +931,10 @@
 
     function startAnimation() {
         if (animationActive || !currentTreeConfig || !currentTreeConfig.nodes) return;
-
-        // Сбрасываем перед началом
         resetAnimation();
-
         animationActive = true;
         currentNodeIndex = 0;
         updateButtonsState(true);
-
         animateStep();
     }
 
@@ -736,7 +958,6 @@
             }, 1000);
         }
 
-        // Показываем связь с родителем
         if (currentNodeIndex > 0 && currentTreeConfig.connections) {
             const parentMap = {};
             currentTreeConfig.connections.forEach(([from, to]) => {
@@ -785,7 +1006,7 @@
                         el.style.transform = 'translate(-50%, -50%) scale(1)';
                     } else {
                         el.style.opacity = '0';
-                        el.style.transform = 'translate(-50%, -50%) scale(0.8)';
+                        el.style.transform = 'translate(-50%, -50%) scale(0.85)';
                         el.classList.remove('node-highlight');
                     }
                 }
@@ -805,7 +1026,6 @@
         updateButtonsState(false);
     }
 
-    // Инициализация при загрузке страницы
     document.addEventListener('DOMContentLoaded', () => {
         const treeContainer = document.getElementById('treeAnimation');
         if (treeContainer) {
@@ -813,7 +1033,6 @@
         }
     });
 
-    // Очистка таймеров при выгрузке страницы
     window.addEventListener('beforeunload', () => {
         if (animationTimeout) {
             clearTimeout(animationTimeout);
