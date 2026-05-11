@@ -4,6 +4,7 @@ from modules_site.data import bp as data_bp
 from modules_site.models import bp as models_bp
 from modules_site.results import bp as results_bp
 from modules_site.settings import bp as settings_bp
+from modules_site.dataset_analys import bp as dataset_analys_bp
 
 from model_manager.model_utils import NumericFeatureSelector
 
@@ -80,6 +81,7 @@ def create_app():
     app.register_blueprint(models_bp)
     app.register_blueprint(results_bp)
     app.register_blueprint(settings_bp)
+    app.register_blueprint(dataset_analys_bp, url_prefix='/dataset')
 
     # Создание папки uploads
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)

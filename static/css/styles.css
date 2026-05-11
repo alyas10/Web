@@ -56,7 +56,7 @@ code, pre, .font-mono {
 
 /* Sidebar */
 .sidebar {
-  width: 250px; /* = 16rem */
+  width: 250px;
   background: var(--es-bg-secondary);
   border-right: 1px solid var(--es-border);
   display: flex;
@@ -120,6 +120,8 @@ code, pre, .font-mono {
   width: 1.25rem;
   height: 1.25rem;
 }
+
+/* Tooltip Icon */
 .tooltip-icon {
   width: 1.25rem;
   height: 1.25rem;
@@ -127,47 +129,141 @@ code, pre, .font-mono {
   margin-left: auto;
   opacity: 0.6;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 .tooltip-trigger:hover .tooltip-icon {
   color: var(--es-accent);
   opacity: 1;
 }
+
+/* ========================================
+   TOOLTIP STYLES - FIXED FOR LONG TEXT
+   ======================================== */
+.tooltip-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: help;
+}
+
 .tooltip-trigger::after {
   content: attr(data-tooltip);
+
+  /* Positioning */
   position: absolute;
   bottom: 100%;
   left: 50%;
-  transform: translateX(-50%) translateY(-8px);
+  transform: translateX(-50%) translateY(-10px);
+
+  /* Appearance */
   background: var(--es-bg-primary);
   border: 1px solid var(--es-border);
   border-radius: 0.5rem;
-  padding: 0.75rem 1rem;
-  font-size: 0.75rem;
+  padding: 0.875rem 1rem;
+
+  /* Typography */
+  font-size: 0.875rem;
+  line-height: 1.4;
   color: var(--es-text-primary);
-  white-space: nowrap;
-  max-width: 300px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  text-align: left;
+  letter-spacing: normal;
+
+  /* Text wrapping for long content */
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+
+  /* Size constraints */
+  width: min(90vw, 420px);
+  max-width: 420px;
+  min-width: 220px;
+  max-height: 320px;
+
+  /* Scroll for overflow */
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  /* Visual effects */
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
   z-index: 1000;
+
+  /* Animation */
   opacity: 0;
   visibility: hidden;
-  transition: all 0.2s ease;
+  transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
   pointer-events: none;
+
+  /* Custom scrollbar for dark theme */
+  scrollbar-width: thin;
+  scrollbar-color: var(--es-border) transparent;
 }
+
+/* Webkit scrollbar styling */
+.tooltip-trigger::after::-webkit-scrollbar {
+  width: 5px;
+}
+.tooltip-trigger::after::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+.tooltip-trigger::after::-webkit-scrollbar-thumb {
+  background: var(--es-border);
+  border-radius: 3px;
+}
+.tooltip-trigger::after::-webkit-scrollbar-thumb:hover {
+  background: var(--es-text-secondary);
+}
+
+/* Show tooltip on hover */
 .tooltip-trigger:hover::after {
   opacity: 1;
   visibility: visible;
-  transform: translateX(-50%) translateY(-12px);
+  transform: translateX(-50%) translateY(-14px);
 }
 
-/* Tooltip styles for dashboard active models */
-.tooltip-trigger {
-  position: relative;
+/* Special handling for tooltips inside tables or tight containers */
+.data-table .tooltip-trigger::after,
+.flex-row .tooltip-trigger::after,
+.sidebar .tooltip-trigger::after {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+  z-index: 2000;
 }
 
+/* Mobile optimization */
+@media (max-width: 768px) {
+  .tooltip-trigger::after {
+    width: min(95vw, 380px);
+    font-size: 0.8125rem;
+    padding: 0.75rem 0.875rem;
+    max-height: 280px;
+  }
+}
 
+@media (max-width: 480px) {
+  .tooltip-trigger::after {
+    width: 95vw;
+    font-size: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    max-height: 240px;
+    transform: translateX(-50%) translateY(-8px);
+  }
+
+  .data-table .tooltip-trigger::after,
+  .flex-row .tooltip-trigger::after {
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* ========================================
+   SIDEBAR & NAVIGATION
+   ======================================== */
 .sidebar-footer {
   padding: 1rem;
   border-top: 1px solid var(--border-color);
@@ -804,7 +900,6 @@ code, pre, .font-mono {
   height: 20px;
 }
 
-
 /* Состояние: sidebar скрыт */
 .app-container.sidebar-collapsed .sidebar {
   width: 0;
@@ -911,48 +1006,48 @@ code, pre, .font-mono {
   height: 1.25rem;
 }
 
-
+/* Files List */
 .files-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    max-height: 300px;
-    overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .file-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.75rem 1rem;
-    background: var(--sidebar-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
-    transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--sidebar-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  transition: all 0.2s;
 }
 
 .file-item:hover {
-    border-color: var(--accent-blue);
-    background: rgba(33, 150, 243, 0.1);
+  border-color: var(--accent-blue);
+  background: rgba(33, 150, 243, 0.1);
 }
 
 .file-info {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
 }
 
 .file-icon {
-    width: 2rem;
-    height: 2rem;
-    border-radius: 0.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: white;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
 }
 
 .file-icon.csv { background: #22c55e; }
@@ -961,28 +1056,125 @@ code, pre, .font-mono {
 .file-icon.other { background: #6b7280; }
 
 .file-details {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .file-name {
-    font-weight: 500;
-    color: var(--text-primary);
-    word-break: break-all;
+  font-weight: 500;
+  color: var(--text-primary);
+  word-break: break-all;
 }
 
 .file-meta {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
 }
 
 .file-actions {
-    display: flex;
-    gap: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
 }
 
 .btn-select {
-    padding: 0.5rem 1rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+/* Гарантируем, что триггер и карточка не обрезают tooltip */
+.tooltip-trigger,
+.model-status-card {
+    overflow: visible !important;
+}
+
+/* Делаем tooltip фиксированным относительно окна, чтобы обойти любые overflow: hidden у родителей */
+.tooltip-trigger::after {
+    top: auto !important;
+    bottom: auto !important;
+    transform: translate(-30%, -40%) !important;
+    z-index: 9999 !important;
+}
+
+/* Показываем только при наведении */
+.tooltip-trigger:hover::after {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+
+/* Стили для страницы описания датасета */
+.dataset-report {
+    color: var(--es-text-secondary);
+    line-height: 1.7;
+    font-size: 0.95rem;
+}
+
+.dataset-report h1, .dataset-report h2, .dataset-report h3 {
+    color: var(--es-text-primary);
+    margin: 2rem 0 1rem;
+    font-weight: 600;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--es-border);
+}
+
+.dataset-report h1 { font-size: 1.5rem; }
+.dataset-report h2 { font-size: 1.25rem; }
+.dataset-report h3 { font-size: 1.1rem; }
+
+.dataset-report p, .dataset-report li {
+    margin-bottom: 0.75rem;
+}
+
+.dataset-report ul, .dataset-report ol {
+    padding-left: 1.5rem;
+}
+
+.dataset-report li {
+    list-style-type: disc;
+}
+
+/* Стили для таблиц из Markdown */
+.dataset-report table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    background: var(--es-bg-secondary);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.dataset-report th, .dataset-report td {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--es-border);
+    color: var(--es-text-primary);
+    text-align: left;
     font-size: 0.875rem;
+}
+
+.dataset-report th {
+    background: var(--es-header-bg);
+    font-weight: 600;
+    color: var(--es-text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.75rem;
+}
+
+.dataset-report tr:hover {
+    background: var(--es-row-hover);
+}
+
+.dataset-report strong {
+    color: var(--es-text-primary);
+    font-weight: 600;
+}
+
+.dataset-report code {
+    background: var(--es-bg-tertiary);
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-size: 0.85em;
+    color: var(--es-accent);
 }

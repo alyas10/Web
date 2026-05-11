@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Описание датасета - {{ project_name or 'ML Network Security' }}{% endblock %}
+{% block extra_css %}
+<style>
+    .dataset-report img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 1.5rem auto;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Размеры через CSS классы */
+    .dataset-report img.small {
+        max-width: 300px;
+        width: 100%;
+    }
+
+    .dataset-report img.medium {
+        max-width: 500px;
+        width: 100%;
+    }
+
+    .dataset-report img.large {
+        max-width: 800px;
+        width: 100%;
+    }
+
+    .dataset-report img.full-width {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    /* Адаптивные размеры */
+    @media (max-width: 768px) {
+        .dataset-report img.small {
+            max-width: 90%;
+        }
+
+        .dataset-report img.medium {
+            max-width: 90%;
+        }
+
+        .dataset-report img.large {
+            max-width: 95%;
+        }
+    }
+
+    /* Поддержка атрибутов width/height из HTML */
+    .dataset-report img[width] {
+        width: auto;
+        max-width: 100%;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="page-header-content">
+            <div class="page-icon-wrapper bg-blue-light">
+                <svg class="page-icon text-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+            </div>
+            <div>
+                <h2 class="page-title">Описание датасета</h2>
+                <p class="page-subtitle">Характеристики, распределение и статистика сетевого трафика</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-content">
+        <div class="card">
+            <div class="card-content dataset-report">
+                {{ report_html | safe }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
