@@ -430,6 +430,9 @@ async function loadUploadedFiles() {
                         <button class="btn btn-secondary btn-select" onclick="selectFile('${file.name}')">
                             Выбрать
                         </button>
+                        <button class="btn btn-danger btn-delete" onclick="deleteFile('${file.name}', this)">
+                            Удалить
+                        </button>
                     </div>
                 `;
                 filesList.appendChild(fileItem);
@@ -468,19 +471,31 @@ async function selectFile(filename) {
                 fileStatus.querySelector('.file-name span').textContent = result.file_info.name;
                 fileStatus.querySelector('.file-details').innerHTML =
                     `Размер: ${result.file_info.size_mb} MB • Выбран для анализа`;
+            } else {
+                // Если блок статуса еще не создан, перезагружаем страницу с session_id
+                const sessionId = Date.now().toString();
+                sessionStorage.setItem('selectedFileData', JSON.stringify(result));
+                window.location.href = `/data?session_id=${sessionId}`;
+                return;
             }
 
-            const analysisFilenameInput = document.getElementById('analysisFilename');
-             if (analysisFilenameInput) {
-               analysisFilenameInput.value = result.filename;
-               }
+
             // Обновляем таблицу предпросмотра
             if (result.sample_data && result.columns) {
-                // Здесь можно добавить логику обновления таблицы без перезагрузки
-                // Для простоты просто перезагружаем страницу
-                const sessionId = result.uploaded_file_info?.session_id || Date.now().toString();
-                window.location.href = `/data?session_id=${sessionId}`;
+                 // Обновляем таблицу без перезагрузки
+                updateDataTable(result.columns, result.sample_data);
             }
+
+             // Обновляем визуализацию если есть
+            if (result.visualization_cards) {
+                updateVisualization(result.visualization_cards);
+            }
+
+            // Обновляем характеристику датасета если есть
+            if (result.data_summary) {
+                updateDataSummary(result.data_summary);
+            }
+
 
             // Активируем кнопку анализа
             const analyzeBtn = document.querySelector('form[action*="start_analysis"] button');
@@ -504,6 +519,184 @@ async function selectFile(filename) {
             btn.disabled = false;
         }
     }
+}
+// Функция для удаления файла
+async function deleteFile(filename, btnElement) {
+    if (!confirm(`Вы уверены, что хотите удалить файл "${filename}"?`)) {
+        return;
+    }
+
+    try {
+        btnElement.textContent = 'Удаление...';
+        btnElement.disabled = true;
+
+        const response = await fetch(`/data/delete_file/${filename}`, {
+            method: 'POST'
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            // Удаляем элемент из DOM
+            const fileItem = btnElement.closest('.file-item');
+            if (fileItem) {
+                fileItem.remove();
+            }
+
+            // Проверяем, остались ли файлы
+            const filesList = document.getElementById('filesList');
+            if (filesList.children.length === 0) {
+                document.getElementById('uploadedFilesContainer').style.display = 'none';
+                document.getElementById('filesEmpty').style.display = 'block';
+            }
+
+            // Если удалили текущий выбранный файл, деактивируем кнопку анализа
+            const currentFilename = document.querySelector('.file-name span')?.textContent;
+            if (currentFilename === filename) {
+                const analyzeBtn = document.querySelector('form[action*="start_analysis"] button');
+                if (analyzeBtn) {
+                    analyzeBtn.disabled = true;
+                    analyzeBtn.style.opacity = '0.5';
+                    analyzeBtn.style.cursor = 'not-allowed';
+                }
+            }
+
+            alert('Файл успешно удален');
+        } else {
+            throw new Error(result.error || 'Неизвестная ошибка');
+        }
+    } catch (error) {
+        console.error('Ошибка удаления файла:', error);
+        alert('Ошибка: ' + error.message);
+        // Восстанавливаем кнопку при ошибке
+        btnElement.textContent = 'Удалить';
+        btnElement.disabled = false;
+    }
+}
+
+// Функция для обновления таблицы данных
+function updateDataTable(columns, sampleData) {
+    const tableContainer = document.querySelector('.table-container');
+    if (!tableContainer) return;
+
+    let tableHTML = '<table class="data-table"><thead><tr>';
+
+    // Заголовки таблицы (первые 8 колонок + Label)
+    columns.slice(0, 8).forEach(col => {
+        tableHTML += `<th>${col}</th>`;
+    });
+    tableHTML += '<th>Status (Label)</th></tr></thead><tbody>';
+
+    // Строки данных
+    sampleData.forEach(row => {
+        tableHTML += '<tr>';
+        columns.slice(0, 8).forEach(col => {
+            tableHTML += `<td>${row[col] !== undefined ? row[col] : '-'}</td>`;
+        });
+        const labelVal = row['Label'] || row['label'] || 'Unknown';
+        let badgeClass = 'badge-yellow';
+        if (labelVal.toLowerCase() === 'benign') badgeClass = 'badge-green';
+        else if (labelVal.toLowerCase().includes('dos') || labelVal.toLowerCase().includes('attack')) badgeClass = 'badge-red';
+
+        tableHTML += `<td><span class="badge ${badgeClass}">${labelVal}</span></td></tr>`;
+    });
+
+    tableHTML += '</tbody></table>';
+    tableContainer.innerHTML = tableHTML;
+}
+
+// Функция для обновления визуализации
+function updateVisualization(visualizationCards) {
+    const vizSection = document.querySelector('.visualization-section');
+    if (!vizSection) {
+        // Создаем секцию визуализации если её нет
+        const pageContent = document.querySelector('.page-content');
+        const newVizSection = document.createElement('div');
+        newVizSection.className = 'visualization-section';
+        newVizSection.innerHTML = '<h3 class="section-title">Обзор данных</h3><div class="visualization-grid"></div>';
+        pageContent.appendChild(newVizSection);
+        const grid = newVizSection.querySelector('.visualization-grid');
+        visualizationCards.forEach(card => {
+            grid.innerHTML += card;
+        });
+    } else {
+        const grid = vizSection.querySelector('.visualization-grid');
+        if (grid) {
+            grid.innerHTML = '';
+            visualizationCards.forEach(card => {
+                grid.innerHTML += card;
+            });
+        }
+    }
+
+    // Перерисовываем графики Plotly
+    if (typeof Plotly !== 'undefined') {
+        setTimeout(() => {
+            const plots = document.querySelectorAll('.visualization-grid .plotly-graph-div');
+            plots.forEach(plot => {
+                if (plot.getAttribute('data-newplot') === 'true') {
+                    Plotly.Plots.resize(plot);
+                }
+            });
+        }, 100);
+    }
+}
+
+// Функция для обновления характеристики датасета
+function updateDataSummary(dataSummary) {
+    const summaryCard = document.querySelector('.summary-grid');
+    if (!summaryCard) return;
+
+    let summaryHTML = '';
+
+    // Основная статистика
+    summaryHTML += `
+        <div class="summary-item">
+            <div class="summary-label">Всего записей</div>
+            <div class="summary-value">${dataSummary.total_rows}</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Признаков</div>
+            <div class="summary-value">${dataSummary.total_columns}</div>
+        </div>
+    `;
+
+    // Распределение протоколов
+    if (dataSummary.protocols && Object.keys(dataSummary.protocols).length > 0) {
+        summaryHTML += '<div class="summary-item full-width"><div class="summary-label">Протоколы</div><div class="protocol-list">';
+        for (const [proto, count] of Object.entries(dataSummary.protocols)) {
+            summaryHTML += `<span class="protocol-badge">${proto}: ${count}</span>`;
+        }
+        summaryHTML += '</div></div>';
+    }
+
+    // Топ IP адресов
+    if (dataSummary.top_src_ips && Object.keys(dataSummary.top_src_ips).length > 0) {
+        summaryHTML += '<div class="summary-item full-width"><div class="summary-label">Топ IP-адресов (источники)</div><ul class="ip-list">';
+        for (const [ip, count] of Object.entries(dataSummary.top_src_ips)) {
+            summaryHTML += `<li>${ip} — ${count}</li>`;
+        }
+        summaryHTML += '</ul></div>';
+    }
+
+    if (dataSummary.top_dst_ips && Object.keys(dataSummary.top_dst_ips).length > 0) {
+        summaryHTML += '<div class="summary-item full-width"><div class="summary-label">Топ IP-адресов (назначения)</div><ul class="ip-list">';
+        for (const [ip, count] of Object.entries(dataSummary.top_dst_ips)) {
+            summaryHTML += `<li>${ip} — ${count}</li>`;
+        }
+        summaryHTML += '</ul></div>';
+    }
+
+    // Распределение меток
+    if (dataSummary.label_distribution && Object.keys(dataSummary.label_distribution).length > 0) {
+        summaryHTML += '<div class="summary-item full-width"><div class="summary-label">Распределение меток</div><div class="label-list">';
+        for (const [label, count] of Object.entries(dataSummary.label_distribution)) {
+            summaryHTML += `<span class="label-badge label-${label.toLowerCase()}">${label}: ${count}</span>`;
+        }
+        summaryHTML += '</div></div>';
+    }
+
+    summaryCard.innerHTML = summaryHTML;
 }
 
 // Загружаем список файлов при загрузке страницы
