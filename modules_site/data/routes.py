@@ -137,7 +137,7 @@ def upload_file():
 
                 processed_df = data_adapter.prepare(raw_df)
                 #sample_data = processed_df.head(6).to_dict(orient='records')
-                columns = processed_df.columns.tolist()
+                #columns = processed_df.columns.tolist()
 
                 # Сохраняем результаты в сессию
                 temp_path = os.path.join(current_app.config['UPLOAD_FOLDER'], f"{session_id}_processed.pkl")
