@@ -27,6 +27,7 @@ class ArtifactBundle:
     pipeline: Any  # Pipeline
     label_encoder: Any
     root_dir: Path
+    feature_names: Optional[List[str]] = None
 
 
 class ModelManager:
@@ -71,11 +72,64 @@ class ModelManager:
         pipeline = joblib.load(paths["pipeline"])
         label_encoder = joblib.load(paths["label_encoder"])
 
+        # Загружаем имена признаков из доступных источников
+        feature_names = self._load_feature_names(algo, root_dir, pipeline)
+
         return ArtifactBundle(
             pipeline=pipeline,
             label_encoder=label_encoder,
             root_dir=root_dir,
+            feature_names=feature_names,
         )
+
+    def _load_feature_names(self, algo: str, root_dir: Path, pipeline: Any) -> Optional[List[str]]:
+        """Загружает имена признаков для модели из различных источников."""
+        # 1. Пробуем загрузить из текстового файла feature_names.txt
+        feature_names_file = root_dir / "feature_names.txt"
+        if feature_names_file.exists():
+            with open(feature_names_file, 'r', encoding='utf-8') as f:
+                return [line.strip() for line in f if line.strip()]
+
+        # 2. Пробуем загрузить из feature_info.pkl (для LightGBM)
+        feature_info_file = root_dir / "feature_info.pkl"
+        if feature_info_file.exists():
+            try:
+                import pickle
+                with open(feature_info_file, 'rb') as f:
+                    feature_info = pickle.load(f)
+                if isinstance(feature_info, dict):
+                    numeric = feature_info.get('numeric_features', [])
+                    categorical = feature_info.get('categorical_features', [])
+                    return numeric + categorical
+            except Exception:
+                pass
+
+        # 3. Пробуем извлечь из самого pipeline
+        try:
+            if hasattr(pipeline, 'named_steps'):
+                # Если это sklearn Pipeline
+                if 'classifier' in pipeline.named_steps:
+                    clf = pipeline.named_steps['classifier']
+                    if hasattr(clf, 'feature_names_in_'):
+                        return list(clf.feature_names_in_)
+                if 'preprocessor' in pipeline.named_steps:
+                    prep = pipeline.named_steps['preprocessor']
+                    if hasattr(prep, 'get_feature_names_out'):
+                        try:
+                            return list(prep.get_feature_names_out())
+                        except Exception:
+                            pass
+                    if hasattr(prep, 'feature_names_in_'):
+                        return list(prep.feature_names_in_)
+
+            # Прямой классификатор
+            if hasattr(pipeline, 'feature_names_in_'):
+                return list(pipeline.feature_names_in_)
+        except Exception:
+            pass
+
+        # Fallback: возвращаем None, будем использовать заглушку
+        return None
 
     def predict(self, algo: str, data: InputData, env: str = "test") -> List[str]:
         bundle = self._get_or_load_bundle(algo, env)
