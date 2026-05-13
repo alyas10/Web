@@ -133,6 +133,7 @@ def upload_file():
                 data_summary = visualizer.generate_data_summary(raw_df)
 
                 sample_data_raw = raw_df.head(6).to_dict(orient='records')
+                columns = raw_df.columns.tolist()
 
                 processed_df = data_adapter.prepare(raw_df)
                 #sample_data = processed_df.head(6).to_dict(orient='records')
@@ -295,9 +296,10 @@ def select_file(filename):
         raw_df = loader.load(filepath)
         # Для предпросмотра показываем сырые данные (как в файле)
         sample_data = raw_df.head(6).to_dict(orient='records')
+        columns = raw_df.columns.tolist()
 
         processed_df = current_app.data_adapter.prepare(raw_df)
-        columns = processed_df.columns.tolist()
+
 
         return jsonify({
             'status': 'success',
@@ -352,10 +354,17 @@ def start_analysis():
         total = len(predictions)
         counts = Counter(predictions)
         benign = counts.get("Benign", counts.get("benign", 0))
-        threats = total - benign
+
+        unique_threat_types = [
+            label for label in counts.keys()
+            if label.lower() != "benign"
+        ]
+        threats = len(unique_threat_types)
 
         distribution = []
         for label, cnt in counts.most_common():
+            if label.lower() == "benign":
+                continue
             pct = round((cnt / total) * 100, 2) if total else 0.0
             distribution.append({
                 "type": label,
@@ -363,6 +372,10 @@ def start_analysis():
                 "percentage": pct,
                 "color": _label_color(label),
             })
+
+            # Если нет угроз, добавляем заглушку
+            if not distribution:
+                distribution = [{"type": "Нет угроз", "count": 0, "percentage": 0, "color": "green"}]
 
         ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
