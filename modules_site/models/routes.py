@@ -419,9 +419,30 @@ def predict():
 
     try:
         # Создаём тестовые данные с правильными признаками
-        feature_names = getattr(current_app, 'REQUIRED_FEATURES',
+        '''feature_names = getattr(current_app, 'REQUIRED_FEATURES',
                                 [f'feature_{i}' for i in range(50)])
         dummy_data = {col: [np.random.normal(0, 1)] for col in feature_names}
+        dummy_df = pd.DataFrame(dummy_data)'''
+
+        # Загружаем бандл модели для получения правильного набора признаков
+        bundle = model_manager._get_or_load_bundle(selected_model_id, env)
+        # Используем feature_names из бандла или извлекаем из pipeline
+        feature_names = bundle.feature_names
+        if feature_names is None:
+            feature_names = _extract_features_from_bundle(bundle)
+
+        # Создаём тестовые данные с правильными признаками для конкретной модели
+        # Для числовых признаков - нормальное распределение, для категориальных (с цифрами в имени) - случайные значения
+        dummy_data = {}
+        for col in feature_names:
+            # Простая эвристика: если имя содержит MAC-адрес или выглядит как категориальный - используем случайный выбор
+            if ':' in col or '_' in col.split('_')[-1] if '_' in col else False:
+                # Категориальный признак (one-hot encoded или类似)
+                dummy_data[col] = [np.random.choice([0, 1])]
+            else:
+                # Числовой признак
+                dummy_data[col] = [np.random.normal(0, 1)]
+
         dummy_df = pd.DataFrame(dummy_data)
 
         predictions = model_manager.predict(selected_model_id, dummy_df, env)
