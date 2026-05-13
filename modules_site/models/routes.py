@@ -266,6 +266,34 @@ def _get_model_viz(model_id):
                 plt.axis('off')
                 tree_img = _plot_to_base64()
                 plt.close()
+
+            elif hasattr(classifier, 'estimators_') and hasattr(classifier, 'feature_names_in_'):  # RandomForest
+                from sklearn.tree import plot_tree
+                # Берем одно из деревьев для визуализации
+                if len(classifier.estimators_) > 0:
+                    tree = classifier.estimators_[0]
+
+                    # Получаем ВСЕ имена признаков для корректного маппинга индексов
+                    all_feature_names = list(classifier.feature_names_in_)
+
+                    # Создаём сокращённые имена только для отображения (но с сохранением индексов)
+                    display_names = [name[:22] + '...' if len(name) > 25 else name
+                                     for name in all_feature_names]
+
+                    plt.figure(figsize=(16, 10), facecolor='#1f2937', dpi=120)
+                    plot_tree(
+                        tree,
+                        feature_names=display_names,  # Полный список, но с короткими именами
+                        class_names=[str(c)[:15] for c in classifier.classes_],
+                        filled=True,
+                        rounded=True,
+                        max_depth=3,  # Ограничиваем глубину для читаемости
+                        fontsize=8
+                    )
+                    plt.title('Дерево решений №1 (Random Forest)', color='white', fontsize=12)
+                    plt.axis('off')
+                    tree_img = _plot_to_base64()
+                    plt.close()
         except Exception as e:
             current_app.logger.warning(f"Tree viz error for {model_id}: {e}")
 
@@ -319,7 +347,7 @@ def models():
                 {'label': 'Критерий', 'key': 'criterion', 'type': 'select', 'value': 'gini',
                  'options': ['gini', 'entropy']},
             ],
-            'has_viz': False
+            'has_viz': True
         },
         {
             'id': 'isolation_forest',
