@@ -242,6 +242,26 @@ def list_uploaded_files():
 
     return jsonify({'files': files})
 
+@bp.route('/delete_file/<filename>', methods=['POST'])
+def delete_file(filename):
+    """Роут для удаления файла из списка загруженных"""
+    filename = secure_filename(filename)
+    filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+
+    if not os.path.exists(filepath):
+        return jsonify({'error': 'Файл не найден'}), 404
+
+    try:
+        os.remove(filepath)
+        # Также удаляем связанный processed файл если есть
+        session_id = filename.replace('.csv', '').replace('.pcap', '').replace('.pcapng', '')
+        processed_path = os.path.join(current_app.config['UPLOAD_FOLDER'], f"{session_id}_processed.pkl")
+        if os.path.exists(processed_path):
+            os.remove(processed_path)
+
+        return jsonify({'status': 'success', 'message': f'Файл {filename} удален'})
+    except Exception as e:
+        return jsonify({'error': f'Ошибка удаления файла: {str(e)}'}), 500
 
 @bp.route('/select_file/<filename>', methods=['POST'])
 def select_file(filename):
