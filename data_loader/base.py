@@ -40,7 +40,8 @@ class DataPipelineAdapter:
     - разделение на train/test (если нужно)
     """
 
-    def __init__(self, expected_features: Optional[List[str]] = None, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, expected_features: Optional[List[str]] = None, config: Optional[Dict[str, Any]] = None,
+                 numeric_features: Optional[List[str]] = None, categorical_features: Optional[List[str]] = None):
         """
         :param expected_features: Список колонок, которые ожидает модель (из feature_info.pkl).
                                   Если None, проверка колонок пропускается (модель сама обработает).
@@ -49,9 +50,13 @@ class DataPipelineAdapter:
                        - normalize_features (bool): применять ли нормализацию
                        - balance_classes (bool): применять ли балансировку классов
                        - auto_preprocess (bool): применять ли автоматическую предобработку
+        :param numeric_features: Список числовых признаков (для правильной конвертации типов)
+        :param categorical_features: Список категориальных признаков (для правильной конвертации типов)
         """
         self.expected_features = expected_features
         self.config = config or {}
+        self.numeric_features = numeric_features or []
+        self.categorical_features = categorical_features or []
 
     def _get_config_value(self, key: str, default: Any = False) -> Any:
         """Безопасное получение значения из конфига."""
@@ -61,11 +66,12 @@ class DataPipelineAdapter:
         """
         Выполняет подготовку данных с учётом настроек:
         1. Очистка от полностью пустых строк/колонок.
-        2. Стандартизация имен колонок (lowercase, trim).
-        3. Проверка наличия обязательных признаков (если заданы).
-        4. Добавление отсутствующих колонок со значением 0 (для совместимости) - ОПТИМИЗИРОВАНО.
-        5. Нормализация числовых признаков (если включено в настройках).
-        6. Балансировка классов (если включено в настройках).
+        2. Конвертация типов данных (числовые/категориальные).
+        3. Сопоставление имен колонок с ожидаемыми признаками модели.
+        4. Проверка наличия обязательных признаков (если заданы).
+        5. Добавление отсутствующих колонок со значением 0 (для совместимости) - ОПТИМИЗИРОВАНО.
+        6. Нормализация числовых признаков (если включено в настройках).
+        7. Балансировка классов (если включено в настройках).
 
         :param raw_df: Исходный DataFrame
         :param target_column: Имя колонки с целевой переменной (для балансировки)
@@ -78,10 +84,15 @@ class DataPipelineAdapter:
         if df.empty:
             raise ValueError("Файл не содержит корректных данных после очистки.")
 
-        # 2. Нормализация имен колонок (убираем пробелы, нижний регистр)
-        df.columns = [str(c).strip().lower().replace(' ', '_') for c in df.columns]
+        # 2. Конвертация типов данных перед сопоставлением
+        df = self._convert_data_types(df)
 
-        # 3. Логика согласования с моделью - ОПТИМИЗИРОВАНО (без цикла insert)
+        # 3. Сопоставление имен колонок с ожидаемыми признаками модели
+        # Важно: НЕ приводим к lowercase, а пытаемся найти соответствие с оригинальными именами
+        if self.expected_features:
+            df = self._match_column_names(df, self.expected_features)
+
+        # 4. Логика согласования с моделью - ОПТИМИЗИРОВАНО (без цикла insert)
         if self.expected_features:
             # ОПТИМИЗАЦИЯ: Собираем все отсутствующие колонки в словарь
             missing_cols = [col for col in self.expected_features if col not in df.columns]
@@ -103,7 +114,7 @@ class DataPipelineAdapter:
                         df[col] = 0
             df = df[self.expected_features]
 
-        # 4. Применение настроек обработки данных
+        # 5. Применение настроек обработки данных
         if self._get_config_value('auto_preprocess', True):
             # Нормализация числовых признаков
             if self._get_config_value('normalize_features', False):
@@ -116,6 +127,64 @@ class DataPipelineAdapter:
         # ОПТИМИЗАЦИЯ: Дефрагментация DataFrame (убираем предупреждение PerformanceWarning)
         if isinstance(df, pd.DataFrame) and len(df) > 0:
             df = df.copy()
+
+        return df
+
+    def _convert_data_types(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Конвертирует типы данных колонок на основе известных списков числовых и категориальных признаков.
+
+        :param df: Исходный DataFrame
+        :return: DataFrame с конвертированными типами
+        """
+        df_converted = df.copy()
+
+        # Конвертируем числовые колонки
+        for col in self.numeric_features:
+            if col in df_converted.columns:
+                try:
+                    df_converted[col] = pd.to_numeric(df_converted[col], errors='coerce').fillna(0)
+                except Exception:
+                    pass
+
+        # Конвертируем категориальные колонки в строки
+        for col in self.categorical_features:
+            if col in df_converted.columns:
+                df_converted[col] = df_converted[col].astype(str)
+
+        return df_converted
+
+    def _match_column_names(self, df: pd.DataFrame, expected_features: List[str]) -> pd.DataFrame:
+        """
+        Сопоставляет имена колонок DataFrame с ожидаемыми именами признаков модели.
+        Использует гибкое сопоставление: игнорирует регистр, пробелы, подчеркивания.
+
+        :param df: Исходный DataFrame
+        :param expected_features: Список ожидаемых имен признаков
+        :return: DataFrame с переименованными колонками
+        """
+        import re
+
+        def normalize_name(name: str) -> str:
+            """Нормализует имя для сравнения: lowercase, убирает пробелы и подчеркивания."""
+            return re.sub(r'[\s_]+', '', str(name).lower())
+
+        # Создаем маппинг: нормализованное имя -> оригинальное ожидаемое имя
+        expected_normalized = {normalize_name(f): f for f in expected_features}
+
+        # Создаем маппинг для переименования колонок
+        rename_map = {}
+        for col in df.columns:
+            normalized_col = normalize_name(col)
+            if normalized_col in expected_normalized:
+                # Нашли соответствие - переименовываем в ожидаемое имя
+                expected_name = expected_normalized[normalized_col]
+                if col != expected_name:
+                    rename_map[col] = expected_name
+
+        # Переименовываем колонки
+        if rename_map:
+            df = df.rename(columns=rename_map)
 
         return df
 
