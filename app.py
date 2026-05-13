@@ -1,4 +1,6 @@
 from flask import Flask
+import os
+import json
 from modules_site.dashboard import bp as dashboard_bp
 from modules_site.data import bp as data_bp
 from modules_site.models import bp as models_bp
@@ -6,13 +8,29 @@ from modules_site.results import bp as results_bp
 from modules_site.settings import bp as settings_bp
 from modules_site.dataset_analys import bp as dataset_analys_bp
 
+
 from model_manager.model_utils import NumericFeatureSelector
+from modules_site.settings.routes import load_config
+
 
 def create_app():
+
     app = Flask(__name__)
     app.config['SECRET_KEY'] = 'your-secret-key-here'
     app.config['UPLOAD_FOLDER'] = 'uploads'
-    app.config['MAX_CONTENT_LENGTH'] = 1000 * 1024 * 1024  # 1000 MB
+    # Загрузка настроек и применение к конфигу приложения
+    app_config = load_config()
+    app.config['MAX_CONTENT_LENGTH'] = app_config.get('max_file_size_mb', 1000) * 1024 * 1024
+    app.app_config = app_config
+
+    @app.context_processor
+    def inject_app_config():
+        """Делает app_config доступным во всех Jinja2-шаблонах"""
+        return {
+            'app_config': app.app_config,
+            'project_name': app.app_config.get('project_name', 'ML Security Project'),
+            'project_description': app.app_config.get('project_description', '')
+        }
 
     # Очистка папки uploads при старте
     import os, shutil
