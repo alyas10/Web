@@ -104,7 +104,19 @@ class ModelManager:
             except Exception:
                 pass
 
-        # 3. Пробуем извлечь из самого pipeline
+        # 3. Для XGBoost пробуем извлечь из meta.json (если есть class_names и features_count)
+        meta_file = root_dir / "meta.json"
+        if meta_file.exists() and algo == "xgboost":
+            try:
+                import json
+                with open(meta_file, 'r', encoding='utf-8') as f:
+                    meta = json.load(f)
+                # Если есть информация о количестве признаков, но нет имен - возвращаем None
+                # Имена будут извлечены из pipeline ниже
+            except Exception:
+                pass
+
+        # 4. Пробуем извлечь из самого pipeline
         try:
             if hasattr(pipeline, 'named_steps'):
                 # Если это sklearn Pipeline
@@ -122,7 +134,7 @@ class ModelManager:
                     if hasattr(prep, 'feature_names_in_'):
                         return list(prep.feature_names_in_)
 
-            # Прямой классификатор
+            # Прямой классификатор (XGBoost, LightGBM)
             if hasattr(pipeline, 'feature_names_in_'):
                 return list(pipeline.feature_names_in_)
         except Exception:
@@ -136,6 +148,71 @@ class ModelManager:
 
         if isinstance(data, np.ndarray):
             data = pd.DataFrame(data)
+
+        # Получаем ожидаемые имена признаков из бандла
+        expected_features = bundle.feature_names
+
+        # === Обработка данных для разных алгоритмов ===
+        if algo == "xgboost":
+            # XGBoost требует enable_categorical=True для категориальных данных
+            # Конвертируем строковые колонки в category тип
+            for col in data.columns:
+                if data[col].dtype == 'object':
+                    data[col] = data[col].astype('category')
+
+            # Если известны ожидаемые признаки - приводим данные к ним
+            if expected_features is not None:
+                # Добавляем отсутствующие колонки с нулями
+                missing_cols = [col for col in expected_features if col not in data.columns]
+                if missing_cols:
+                    for col in missing_cols:
+                        # Определяем тип колонки по имени (one-hot encoded или numeric)
+                        if '_' in col and ':' in col:
+                            # Это one-hot encoded признак (например, MAC-адрес)
+                            data[col] = 0
+                        else:
+                            data[col] = 0
+
+                # Удаляем лишние колонки и сортируем в правильном порядке
+                extra_cols = [col for col in data.columns if col not in expected_features]
+                if extra_cols:
+                    data = data.drop(columns=extra_cols)
+                data = data[expected_features]
+
+        elif algo == "random_forest":
+            # RandomForest требует строгого соответствия признаков
+            if expected_features is not None:
+                processed_data = {}
+                for col in expected_features:
+                    if col in data.columns:
+                        processed_data[col] = data[col].values
+                    else:
+                        # Если колонка отсутствует - заполняем нулями
+                        processed_data[col] = np.zeros(len(data))
+                data = pd.DataFrame(processed_data, index=data.index)
+
+        elif algo == "lightgbm":
+            # LightGBM может работать с категориальными данными
+            # Конвертируем строковые колонки в category тип
+            for col in data.columns:
+                if data[col].dtype == 'object':
+                    data[col] = data[col].astype('category')
+
+            # Если известны ожидаемые признаки - приводим данные к ним
+            if expected_features is not None:
+                # Добавляем отсутствующие колонки
+                missing_cols = [col for col in expected_features if col not in data.columns]
+                if missing_cols:
+                    for col in missing_cols:
+                        data[col] = 0
+
+                # Удаляем лишние колонки
+                extra_cols = [col for col in data.columns if col not in expected_features]
+                if extra_cols:
+                    data = data.drop(columns=extra_cols)
+
+                # Сортируем в правильном порядке
+                data = data[expected_features]
 
         # Вызов модели вынесен из try, чтобы отделить ошибки инференса от ошибок декодирования
         pred = bundle.pipeline.predict(data)
