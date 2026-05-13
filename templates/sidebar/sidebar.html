@@ -1,7 +1,7 @@
 <aside id="mySidebar" class="sidebar">
   <div class="sidebar-header">
-    <h1 class="sidebar-title">Симулятор алгоритмов МО</h1>
-    <p class="sidebar-subtitle">Анализ сетевого трафика</p>
+    <h1 class="sidebar-title">{{ app_config.get('project_name')}}</h1>
+    <p class="sidebar-subtitle">{{ app_config.get('project_description')}}</p>
   </div>
 
   <button class="sidebar-toggle-btn" onclick="toggleSidebar()">
