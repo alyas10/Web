@@ -63,7 +63,9 @@ def create_app():
     # Передаём конфиг в адаптер для использования настроек обработки данных
     data_adapter = DataPipelineAdapter(
         expected_features=feature_info['numeric_features'] + feature_info['categorical_features'],
-        config=app_config
+        config=app_config,
+        numeric_features=feature_info['numeric_features'],
+        categorical_features=feature_info['categorical_features']
     )
     visualizer = DatasetVisualizer(feature_info=feature_info)
 
