@@ -33,16 +33,39 @@ def extract_model_params(classifier: Any) -> Dict[str, str]:
     try:
         if hasattr(classifier, 'get_params'):
             all_params = classifier.get_params()
+            # Расширенный список параметров для всех поддерживаемых моделей
             key_params = [
-                'n_estimators', 'max_depth', 'learning_rate', 'num_leaves',
-                'min_data_in_leaf', 'feature_fraction', 'bagging_fraction',
-                'subsample', 'colsample_bytree', 'gamma', 'reg_alpha', 'reg_lambda',
+                # Общие параметры
+                'n_estimators', 'max_depth', 'learning_rate', 'random_state',
+                # Random Forest
                 'min_samples_split', 'min_samples_leaf', 'max_features',
-                'criterion', 'contamination', 'random_state'
+                'criterion', 'bootstrap', 'oob_score', 'class_weight', 'n_jobs',
+                # LightGBM
+                'num_leaves', 'min_data_in_leaf', 'feature_fraction', 'bagging_fraction',
+                'bagging_freq', 'lambda_l1', 'lambda_l2', 'min_gain_to_split',
+                'max_bin', 'feature_pre_filter', 'verbosity',
+                # XGBoost
+                'subsample', 'colsample_bytree', 'colsample_bylevel', 'colsample_bynode',
+                'gamma', 'reg_alpha', 'reg_lambda', 'scale_pos_weight',
+                'min_child_weight', 'max_delta_step', 'tree_method', 'grow_policy',
+                # Isolation Forest
+                'contamination', 'max_samples', 'bootstrap', 'warm_start'
             ]
-            return {k: str(v) for k, v in all_params.items()
-                    if k in key_params and v is not None}
-    except Exception:
+            result = {}
+            for k, v in all_params.items():
+                if k in key_params and v is not None:
+                    # Форматируем значения для читаемого отображения
+                    if isinstance(v, bool):
+                        result[k] = 'Да' if v else 'Нет'
+                    elif isinstance(v, (int, float)):
+                        if isinstance(v, float) and v < 0.01 and v > 0:
+                            result[k] = f'{v:.4f}'
+                        else:
+                            result[k] = str(v)
+                    else:
+                        result[k] = str(v)
+            return result
+    except Exception as e:
         pass
 
     params = {}
@@ -240,7 +263,7 @@ def get_security_application(model_type: str) -> str:
 
 def has_tree_viz(model_type: str) -> bool:
     """Проверяет, поддерживает ли модель визуализацию дерева решений."""
-    return model_type in ['LGBMClassifier', 'XGBClassifier']
+    return model_type in ['LGBMClassifier', 'XGBClassifier','RandomForestClassifier']
 
 
 def _extract_accuracy_from_model_attributes(classifier: Any) -> Optional[float]:
