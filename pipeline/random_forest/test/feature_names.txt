@@ -1,0 +1,55 @@
+TCP Destination Port
+UDP Checksum
+IP Fragment Offset_0.0
+IP Fragment Offset_0
+UDP Source Port
+IP Length
+HTTP Full URI
+TCP Checksum
+Ethernet Source_08:00:27:5d:ef:d9
+IP Flags_0x40
+Protocol
+Ethernet Source_08:00:27:38:0f:72
+Ethernet Destination
+Length
+IP Flags_0x00,0x00
+HTTP Host
+IP Destination
+Source
+TCP Length
+HTTP User-Agent
+IP TTL
+IP Protocol_TCP
+TCP Sequence Number
+TCP ACK Flag_Set
+TCP Source Port
+IP Version_4.0
+IP Flags_0x00
+Ethernet Source_08:00:27:4f:81:43
+TCP RST Flag_Set
+HTTP Connection_Unknown
+TCP RST Flag_Not set
+IP Version_4
+ICMP Checksum
+Ethernet Source_08:00:27:72:78:63
+IP Version_4,4
+IP Source
+HTTP Request Version_Unknown
+HTTP Request URI
+TCP ACK Flag_Not set
+TCP Acknowledgment Number
+TCP Window Size
+IP Checksum
+Ethernet Source_08:00:27:a6:7e:fb
+Ethernet Source_08:00:27:37:96:63
+IP Fragment Offset_0,0
+IP DSCP Field_0xc0,0x00
+HTTP Content-Length
+IP Protocol_ICMP,UDP
+Ethernet Type_ARP
+Ethernet Type_IPv4
+frame length
+Destination
+IP Protocol_ICMP
+TCP Flags
+Ethernet Source_08:00:27:66:96:d4
