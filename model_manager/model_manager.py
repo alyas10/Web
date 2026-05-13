@@ -43,6 +43,10 @@ class ModelManager:
             "xgboost": {
                 "pipeline": "xgb_optuna_best.joblib",
                 "label_encoder": "label_encoder.joblib",
+            },
+            "random_forest": {
+                "pipeline": "random_forest_v1.joblib",
+                "label_encoder": "label_encoder.joblib",
             }
         }
 
@@ -79,20 +83,22 @@ class ModelManager:
         if isinstance(data, np.ndarray):
             data = pd.DataFrame(data)
 
-        try:
-            pred = bundle.pipeline.predict(data)
-            print(
-                f"[DEBUG] pred type: {type(pred)}, shape: {getattr(pred, 'shape', 'N/A')}, value: {pred[:5] if hasattr(pred, '__len__') else 'N/A'}"
-            )
-        except Exception as e:
-            print(f"[ERROR] pipeline.predict failed: {e}")
-            raise
+        # Вызов модели вынесен из try, чтобы отделить ошибки инференса от ошибок декодирования
+        pred = bundle.pipeline.predict(data)
+        print(
+            f"[DEBUG] pred type: {type(pred)}, shape: {getattr(pred, 'shape', 'N/A')}, value: {pred[:5] if hasattr(pred, '__len__') else 'N/A'}"
+        )
 
         if pred is None:
             raise ModelManagerError("Pipeline.predict() returned None")
 
+        # Если модель уже вернула строковые метки, обратное преобразование не требуется
+        if len(pred) > 0 and isinstance(pred.flat[0], str):
+            return [str(x) for x in pred]
+
+        # Если вернула числовые коды, безопасно преобразуем и декодируем
         try:
-            labels = bundle.label_encoder.inverse_transform(pred.astype(int))
+            labels = bundle.label_encoder.inverse_transform(np.asarray(pred).astype(int))
         except Exception as e:
             print(f"[ERROR] inverse_transform failed: {e}")
             raise
