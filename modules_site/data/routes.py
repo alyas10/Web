@@ -132,8 +132,10 @@ def upload_file():
                 visualization_cards_html = visualizer.generate_overview_plots(raw_df)
                 data_summary = visualizer.generate_data_summary(raw_df)
 
+                sample_data_raw = raw_df.head(6).to_dict(orient='records')
+
                 processed_df = data_adapter.prepare(raw_df)
-                sample_data = processed_df.head(6).to_dict(orient='records')
+                #sample_data = processed_df.head(6).to_dict(orient='records')
                 columns = processed_df.columns.tolist()
 
                 # Сохраняем результаты в сессию
@@ -141,7 +143,8 @@ def upload_file():
                 raw_df.to_pickle(temp_path)
 
                 session_data = {
-                    'sample_data': sample_data,
+                    #'sample_data': sample_data,
+                    'sample_data': sample_data_raw,
                     'columns': columns,
                     'visualization_cards': visualization_cards_html,
                     'data_summary': data_summary,
@@ -290,8 +293,10 @@ def select_file(filename):
 
         # Загружаем только первые 6 строк для превью
         raw_df = loader.load(filepath)
+        # Для предпросмотра показываем сырые данные (как в файле)
+        sample_data = raw_df.head(6).to_dict(orient='records')
+
         processed_df = current_app.data_adapter.prepare(raw_df)
-        sample_data = processed_df.head(6).to_dict(orient='records')
         columns = processed_df.columns.tolist()
 
         return jsonify({
