@@ -50,7 +50,7 @@ def _generate_test_data(n_samples=5000):
             wrong_choices = [i for i in range(len(classes)) if i != true_idx]
             pred_idx = np.random.choice(wrong_choices)
 
-        # Генерируем вероятности: правильный класс имеет更高的 вероятность
+        # Генерируем вероятности
         probs = np.random.uniform(0.02, 0.15, size=len(classes))
 
         # Устанавливаем вероятность для предсказанного класса выше
