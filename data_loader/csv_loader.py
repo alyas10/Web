@@ -38,6 +38,10 @@ class CSVDataLoader(BaseDataLoader):
             # ignore_index=True сбрасывает индексы, чтобы они шли 0, 1, 2...
             df = pd.concat(chunks, ignore_index=True)
 
+            # Удаляем полностью пустые строки и колонки
+            df.dropna(how='all', inplace=True)
+            df.dropna(axis=1, how='all', inplace=True)
+
             return df
 
         except Exception as e:
