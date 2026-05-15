@@ -143,91 +143,73 @@ class ModelManager:
         # Fallback: возвращаем None, будем использовать заглушку
         return None
 
+    def _normalize_input_features(
+            self,
+            data: pd.DataFrame,
+            expected_features: Optional[List[str]],
+            algo: str
+    ) -> pd.DataFrame:
+        """
+        Приводит входные данные к формату, ожидаемому моделью.
+
+        - Добавляет отсутствующие признаки (заполняет 0)
+        - Удаляет лишние колонки
+        - Сортирует в правильном порядке
+        - Конвертирует object-колонки в category для tree-моделей
+        """
+        if expected_features is None:
+            # Если имена признаков неизвестны — возвращаем как есть
+            # (модель должна справиться сама или упадёт с понятной ошибкой)
+            return data.copy()
+
+        result = data.copy()
+
+        # 1. Конвертация object → category для tree-based моделей
+        if algo in ("lightgbm", "xgboost", "random_forest"):
+            for col in result.select_dtypes(include='object').columns:
+                if col in expected_features:
+                    result[col] = result[col].astype('category')
+
+        # 2. Добавляем отсутствующие признаки
+        missing = [f for f in expected_features if f not in result.columns]
+        if missing:
+            for col in missing:
+                # Для one-hot encoded признаков (с '_' и ':') — 0, иначе — 0
+                result[col] = 0
+
+        # 3. Удаляем лишние колонки
+        extra = [c for c in result.columns if c not in expected_features]
+        if extra:
+            result = result.drop(columns=extra)
+
+        # 4. Сортируем в правильном порядке
+        result = result[expected_features]
+
+        return result
+
     def predict(self, algo: str, data: InputData, env: str = "test") -> List[str]:
         bundle = self._get_or_load_bundle(algo, env)
+
 
         if isinstance(data, np.ndarray):
             data = pd.DataFrame(data)
 
-        # Получаем ожидаемые имена признаков из бандла
         expected_features = bundle.feature_names
 
-        # === Обработка данных для разных алгоритмов ===
-        if algo == "xgboost":
-            # XGBoost требует enable_categorical=True для категориальных данных
-            # Конвертируем строковые колонки в category тип
-            for col in data.columns:
-                if data[col].dtype == 'object':
-                    data[col] = data[col].astype('category')
-
-            # Если известны ожидаемые признаки - приводим данные к ним
-            if expected_features is not None:
-                # Добавляем отсутствующие колонки с нулями
-                missing_cols = [col for col in expected_features if col not in data.columns]
-                if missing_cols:
-                    for col in missing_cols:
-                        # Определяем тип колонки по имени (one-hot encoded или numeric)
-                        if '_' in col and ':' in col:
-                            # Это one-hot encoded признак (например, MAC-адрес)
-                            data[col] = 0
-                        else:
-                            data[col] = 0
-
-                # Удаляем лишние колонки и сортируем в правильном порядке
-                extra_cols = [col for col in data.columns if col not in expected_features]
-                if extra_cols:
-                    data = data.drop(columns=extra_cols)
-                data = data[expected_features]
-
-        elif algo == "random_forest":
-            # RandomForest требует строгого соответствия признаков
-            if expected_features is not None:
-                processed_data = {}
-                for col in expected_features:
-                    if col in data.columns:
-                        processed_data[col] = data[col].values
-                    else:
-                        # Если колонка отсутствует - заполняем нулями
-                        processed_data[col] = np.zeros(len(data))
-                data = pd.DataFrame(processed_data, index=data.index)
-
-        elif algo == "lightgbm":
-            # LightGBM может работать с категориальными данными
-            # Конвертируем строковые колонки в category тип
-            for col in data.columns:
-                if data[col].dtype == 'object':
-                    data[col] = data[col].astype('category')
-
-            # Если известны ожидаемые признаки - приводим данные к ним
-            if expected_features is not None:
-                # Добавляем отсутствующие колонки
-                missing_cols = [col for col in expected_features if col not in data.columns]
-                if missing_cols:
-                    for col in missing_cols:
-                        data[col] = 0
-
-                # Удаляем лишние колонки
-                extra_cols = [col for col in data.columns if col not in expected_features]
-                if extra_cols:
-                    data = data.drop(columns=extra_cols)
-
-                # Сортируем в правильном порядке
-                data = data[expected_features]
-
-        # Вызов модели вынесен из try, чтобы отделить ошибки инференса от ошибок декодирования
+        # === Универсальная предобработка признаков ===
+        data = self._normalize_input_features(data, expected_features, algo)
+        print(f"[DEBUG] algo={algo}, input_cols={list(data.columns)[:10]}..., expected={len(expected_features) if expected_features else 'None'}")
+        # Вызов модели
         pred = bundle.pipeline.predict(data)
-        print(
-            f"[DEBUG] pred type: {type(pred)}, shape: {getattr(pred, 'shape', 'N/A')}, value: {pred[:5] if hasattr(pred, '__len__') else 'N/A'}"
-        )
 
         if pred is None:
             raise ModelManagerError("Pipeline.predict() returned None")
 
-        # Если модель уже вернула строковые метки, обратное преобразование не требуется
+        # Если модель уже вернула строковые метки
         if len(pred) > 0 and isinstance(pred.flat[0], str):
             return [str(x) for x in pred]
 
-        # Если вернула числовые коды, безопасно преобразуем и декодируем
+        # Декодирование числовых предсказаний
         try:
             labels = bundle.label_encoder.inverse_transform(np.asarray(pred).astype(int))
         except Exception as e:
