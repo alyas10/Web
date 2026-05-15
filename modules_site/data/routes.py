@@ -119,7 +119,7 @@ def upload_file():
                     loader = CSVDataLoader()
                     chunksize = 100000
                 elif ext in PcapScapyDataLoader().supported_extensions:
-                    loader = PcapScapyDataLoader()
+                    loader = PcapScapyDataLoader(extract_features=True)
                     chunksize = 10000
                 else:
                     processing_progress[session_id] = -1
@@ -127,6 +127,12 @@ def upload_file():
 
                 # Загружаем с чанками и колбэком прогресса
                 raw_df = loader.load(filepath, chunksize=chunksize, progress_callback=update_progress)
+
+                # Проверка на пустой DataFrame
+                if raw_df.empty:
+                    processing_progress[session_id] = -1
+                    print(f"[ERROR] Файл {filename} не содержит данных после загрузки")
+                    return
 
                 # После загрузки - визуализация и подготовка
                 visualization_cards_html = visualizer.generate_overview_plots(raw_df)
@@ -288,12 +294,17 @@ def select_file(filename):
         if ext == '.csv':
             loader = CSVDataLoader()
         elif ext in PcapScapyDataLoader().supported_extensions:
-            loader = PcapScapyDataLoader()
+            loader = PcapScapyDataLoader(extract_features=True)
         else:
             return jsonify({'error': f'Формат {ext} не поддерживается'}), 400
 
         # Загружаем только первые 6 строк для превью
         raw_df = loader.load(filepath)
+
+        # Проверка на пустой DataFrame
+        if raw_df.empty:
+            return jsonify({'error': 'Файл не содержит данных'}), 400
+
         # Для предпросмотра показываем сырые данные (как в файле)
         sample_data = raw_df.head(6).to_dict(orient='records')
         columns = raw_df.columns.tolist()
