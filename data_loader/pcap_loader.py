@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Callable
 from datetime import datetime
 import os
 
@@ -26,19 +26,23 @@ class PcapScapyDataLoader(BaseDataLoader):
     Возвращает "сырой" DataFrame со сведениями о пакетах.
     """
 
-    def __init__(self, max_packets: Optional[int] = None, payload_preview_bytes: int = 0):
+    def __init__(self, max_packets: Optional[int] = None, payload_preview_bytes: int = 0,
+                 extract_features: bool = True):
         """
         :param max_packets: если задано — ограничивает число пакетов для чтения (ускоряет).
         :param payload_preview_bytes: если > 0 — добавляет preview первых N байт Raw payload (как bytes).
+        :param extract_features: если True — извлекает дополнительные признаки для ML
         """
         self.max_packets = max_packets
         self.payload_preview_bytes = payload_preview_bytes
+        self.extract_features = extract_features
 
     @property
     def supported_extensions(self) -> List[str]:
         return [".pcap", ".pcapng"]
 
-    def load(self, file_path: str) -> pd.DataFrame:
+    def load(self, file_path: str, chunksize: int = 10000,
+             progress_callback: Optional[Callable[[int], None]] = None) -> pd.DataFrame:
         # 1) Проверки пути/расширения
         if not isinstance(file_path, str) or not file_path.strip():
             raise ValueError("file_path должен быть непустой строкой.")
@@ -81,11 +85,19 @@ class PcapScapyDataLoader(BaseDataLoader):
             if row is not None:
                 rows.append(row)
 
+             # Обновляем прогресс
+            if progress_callback and (i + 1) % chunksize == 0:
+                progress_callback(i + 1)
+
         df = pd.DataFrame(rows)
 
         # минимально полезно: сортировка по времени, если есть
         if not df.empty and "timestamp" in df.columns:
             df.sort_values("timestamp", inplace=True, ignore_index=True)
+
+        # Извлечение дополнительных признаков для ML
+        if self.extract_features and not df.empty:
+            df = self._extract_ml_features(df)
 
         return df
 
@@ -215,3 +227,51 @@ class PcapScapyDataLoader(BaseDataLoader):
         if proto_num is None:
             return "Unknown"
         return protocol_map.get(int(proto_num), f"Proto-{proto_num}")
+
+    def _extract_ml_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Извлекает дополнительные признаки из PCAP данных для ML моделей.
+        Добавляет числовые признаки на основе сетевой активности.
+
+        :param df: DataFrame с распарсенными пакетами
+        :return: DataFrame с дополнительными признаками
+        """
+        try:
+            # 1. Длительность пакетов (если есть timestamp)
+            if 'timestamp' in df.columns and len(df) > 1:
+                df['packet_interval'] = df['timestamp'].diff().dt.total_seconds().fillna(0)
+
+            # 2. Бинарные флаги для протоколов
+            for proto in ['TCP', 'UDP', 'ICMP', 'DNS', 'HTTP', 'ARP']:
+                df[f'is_{proto.lower()}'] = (df['protocol'] == proto).astype(int)
+
+            # 3. Размер пакета (нормализованный)
+            if 'length' in df.columns:
+                df['length_normalized'] = df['length'] / df['length'].max() if df['length'].max() > 0 else 0
+
+            # 4. Наличие портов (для TCP/UDP)
+            df['has_source_port'] = df['source_port'].notna().astype(int)
+            df['has_destination_port'] = df['destination_port'].notna().astype(int)
+
+            # 5. Частота IP адресов (сколько раз встречался каждый IP)
+            if 'source_ip' in df.columns:
+                src_ip_counts = df.groupby('source_ip').size().to_dict()
+                df['src_ip_frequency'] = df['source_ip'].map(src_ip_counts).fillna(1)
+
+            if 'destination_ip' in df.columns:
+                dst_ip_counts = df.groupby('destination_ip').size().to_dict()
+                df['dst_ip_frequency'] = df['destination_ip'].map(dst_ip_counts).fillna(1)
+
+            # 6. Известные порты (веб, DNS, SSH и т.д.)
+            common_ports = {80: 'http', 443: 'https', 53: 'dns', 22: 'ssh', 21: 'ftp',
+                            25: 'smtp', 110: 'pop3', 143: 'imap', 3389: 'rdp'}
+
+            df['is_common_port'] = df['destination_port'].apply(
+                lambda x: 1 if x in common_ports.keys() else 0
+            ) if 'destination_port' in df.columns else 0
+
+        except Exception as e:
+            # Если извлечение признаков не удалось - продолжаем без них
+            print(f"[WARNING] Не удалось извлечь ML признаки: {e}")
+
+        return df
