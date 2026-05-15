@@ -327,12 +327,12 @@ def select_file(filename):
     except Exception as e:
         return jsonify({'error': f'Ошибка загрузки файла: {str(e)}'}), 500
 
+
 @bp.route('/start_analysis', methods=['POST'])
 def start_analysis():
     """Роут для запуска анализа POST /data/start_analysis"""
     model_manager = current_app.model_manager
     data_adapter = current_app.data_adapter
-    visualizer = current_app.visualizer
 
     filename = request.form.get('filename') or session.get('last_uploaded_filename')
     if not filename:
@@ -345,15 +345,29 @@ def start_analysis():
         return jsonify({"error": f"Файл не найден в uploads: {filename}"}), 404
 
     ext = os.path.splitext(filename)[1].lower()
-    if ext != ".csv":
-        return jsonify({"error": f"Формат {ext} не поддерживается для анализа (ожидается .csv)."}), 400
+    supported_formats = ['.csv', '.pcap', '.pcapng']
+
+    if ext not in supported_formats:
+        return jsonify({
+            "error": f"Формат {ext} не поддерживается. Поддерживаются: {', '.join(supported_formats)}"
+        }), 400
 
     try:
-        from data_loader.csv_loader import CSVDataLoader
-        loader = CSVDataLoader()
+        # 1. Выбираем загрузчик в зависимости от формата
+        if ext == '.csv':
+            from data_loader.csv_loader import CSVDataLoader
+            loader = CSVDataLoader()
+        else:  # .pcap или .pcapng
+            from data_loader.pcap_loader import PcapScapyDataLoader
+            loader = PcapScapyDataLoader(extract_features=True)
+
+        # 2. Загружаем данные
         raw_df = loader.load(filepath)
+
+        # 3. Подготовка данных под модель (добавит недостающие признаки нулями, уберет лишние)
         processed_df = data_adapter.prepare(raw_df)
 
+        # 4. Запускаем предсказание
         algo = request.form.get('algo', 'lightgbm')
         env = request.form.get('env', 'test')
 
@@ -362,10 +376,10 @@ def start_analysis():
 
         predictions = model_manager.predict(algo=algo, data=processed_df, env=env)
 
+        # 5. Формируем статистику
         total = len(predictions)
         counts = Counter(predictions)
         benign = counts.get("Benign", counts.get("benign", 0))
-
         unique_threat_types = [
             label for label in counts.keys()
             if label.lower() != "benign"
@@ -383,10 +397,6 @@ def start_analysis():
                 "percentage": pct,
                 "color": _label_color(label),
             })
-
-            # Если нет угроз, добавляем заглушку
-            if not distribution:
-                distribution = [{"type": "Нет угроз", "count": 0, "percentage": 0, "color": "green"}]
 
         ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -415,4 +425,5 @@ def start_analysis():
         return redirect(url_for('dashboard.dashboard'))
 
     except Exception as e:
+        current_app.logger.error(f"Ошибка анализа: {e}", exc_info=True)
         return jsonify({"error": f"Ошибка анализа: {str(e)}"}), 500
