@@ -142,15 +142,38 @@ document.addEventListener('DOMContentLoaded', function() {
              vizElements.imgTree.src = 'data:image/png;base64,' + data.tree;
              vizElements.imgTree.classList.add('loaded');
                }
-                // 2. Мета-информация (гиперпараметры)
-                if (vizElements.metaInfo && data.info) {
-                    vizElements.metaInfo.innerHTML = Object.entries(data.info)
-                        .map(([key, value]) => `
-                            <div class="viz-meta-item">
+                // 2. Мета-информация (гиперпараметры и метрики)
+                if (vizElements.metaInfo) {
+                    let html = '';
+
+                    // Параметры модели
+                    if (data.params && Object.keys(data.params).length > 0) {
+                        html += '<div class="viz-meta-section"><h4>Параметры модели</h4><div class="viz-meta-grid">';
+                        for (const [key, value] of Object.entries(data.params)) {
+                            if (value !== null && value !== undefined) {
+                                html += `<div class="viz-meta-item">
+                                    <span class="viz-meta-label">${formatLabel(key)}</span>
+                                    <span class="viz-meta-value">${value}</span>
+                                </div>`;
+                            }
+                        }
+                        html += '</div></div>';
+                    }
+
+                    // Информация о модели
+                    if (data.info) {
+                        html += '<div class="viz-meta-section"><h4>Информация</h4><div class="viz-meta-grid">';
+                        for (const [key, value] of Object.entries(data.info)) {
+                            html += `<div class="viz-meta-item">
+
                                 <span class="viz-meta-label">${formatLabel(key)}</span>
                                 <span class="viz-meta-value">${value}</span>
-                            </div>
-                        `).join('');
+                             </div>`;
+                        }
+                        html += '</div></div>';
+                    }
+
+                    vizElements.metaInfo.innerHTML = html || '<p class="viz-no-data">Нет данных для отображения</p>';
                 }
 
                 updateVizState('content');
