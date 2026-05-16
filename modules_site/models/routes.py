@@ -73,7 +73,7 @@ def plt_context():
         plt.close('all')
 
 
-def _plot_to_base64(dpi: int = 120) -> str:
+def _plot_to_base64(dpi: int = 200) -> str:
     """Конвертирует matplotlib график в base64-строку"""
     buf = io.BytesIO()
     try:
@@ -320,7 +320,7 @@ def _get_model_viz(model_id: str) -> Dict[str, Any]:
             elif hasattr(classifier, 'get_booster'):  # XGBoost
                 import xgboost as xgb
                 booster = classifier.get_booster()
-                plt.figure(figsize=(24, 16), facecolor='#1f2937', dpi=150)
+                plt.figure(figsize=(24, 16), facecolor='#1f2937', dpi=200)
                 xgb.plot_tree(
                     booster, num_trees=0, rankdir='LR',
                     condition_node_params={'shape': 'box', 'style': 'filled,rounded', 'fillcolor': '#78bceb'},
@@ -339,7 +339,7 @@ def _get_model_viz(model_id: str) -> Dict[str, Any]:
                     display_names = [name[:22] + '...' if len(name) > 25 else name
                                      for name in all_feature_names]
 
-                    plt.figure(figsize=(16, 10), facecolor='#1f2937', dpi=120)
+                    plt.figure(figsize=(16, 10), facecolor='#1f2937', dpi=200)
                     plot_tree(
                         tree,
                         feature_names=display_names,
