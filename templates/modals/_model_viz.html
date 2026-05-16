@@ -46,28 +46,28 @@
                        <!--   <div class="img-wrapper">
                        <img id="imgPipeline" src="" alt="Структура пайплайна" class="viz-image" loading="lazy"> -->
 
-                         <div id="pipelineContainer" style="padding:1rem; overflow:auto;">
+                         <div id="pipelineContainer" style="padding:1rem; overflow:auto; max-height: 500px;">
                                <!-- Сюда вставится HTML от sklearn -->
                           </div>
                      </div>
 
                         {# Панель 1: Важность #}
                         <div id="tab-importance" class="tab-pane active">
-                            <div class="img-wrapper">
+                            <div class="img-wrapper zoomable" id="wrapperImportance">
                                 <img id="imgImportance" src="" alt="Важность признаков" class="viz-image">
                             </div>
                         </div>
 
                         {# Панель 2: Дерево #}
                         <div id="tab-tree" class="tab-pane">
-                            <div class="img-wrapper zoomable">
+                            <div class="img-wrapper zoomable" id="wrapperTree">
                                 <img id="imgTree" src="" alt="Дерево решений" class="viz-image">
                             </div>
                         </div>
 
                         {# Панель 4: Инфо #}
                         <div id="tab-info" class="tab-pane">
-                            <div id="metaInfo" class="viz-meta-list"></div>
+                            <div id="metaInfo" class="viz-meta-list" style="padding: 1rem; overflow-y: auto; max-height: 500px;"></div>
                         </div>
                     </div>
 
