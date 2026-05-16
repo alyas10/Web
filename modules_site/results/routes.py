@@ -398,7 +398,6 @@ def results():
             'roc_auc': metrics_data['roc_auc'],
             'confusion_matrix_img': confusion_matrix_img,
             'roc_curve_img': roc_curve_img,
-            'feature_importance_img': feature_importance_img,
             'class_names': metrics_data['class_names'][:10]  # Топ 10 классов
         }
 
@@ -410,7 +409,25 @@ def results():
                                models_results=[],
                                error="No models available")
 
-    return render_template('results.html', models_results=models_results)
+        # Определяем лучшую модель по accuracy
+    best_model = max(models_results, key=lambda x: float(x['accuracy'].rstrip('%')))
+
+     # Формируем данные для сравнительной таблицы
+    comparison_table = []
+    for model in models_results:
+            is_best = model['model_id'] == best_model['model_id']
+            comparison_table.append({
+                'model_name': model['model_name'],
+                'accuracy': model['accuracy'],
+                'f1_score': model['f1_score'],
+                'roc_auc': model['roc_auc'],
+                'is_best': is_best
+            })
+
+    return render_template('results.html',
+                               models_results=models_results,
+                               comparison_table=comparison_table,
+                               best_model=best_model)
 
 
 @bp.route('/api/metrics')
