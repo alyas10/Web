@@ -1,6 +1,6 @@
 # modules_site/models/routes.py
 from flask import render_template, request, jsonify, current_app, session
-from . import bp
+from . import bp  # Импорт один раз в начале
 import pandas as pd
 import numpy as np
 import joblib
@@ -9,22 +9,28 @@ import io
 import os
 import base64
 import matplotlib
+import logging
 
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from datetime import datetime
+from typing import Optional, Dict, List, Any, Union
 
 # Импорт функций загрузки конфига проекта из settings
 from modules_site.settings.routes import load_config
-from . import bp
 
-# Регистрация класса для корректной десериализации
+# Импорт класса для корректной десериализации
 from model_manager.model_utils import NumericFeatureSelector
 import sys
 
-sys.modules['__main__'].NumericFeatureSelector = NumericFeatureSelector
+# Более безопасная регистрация класса для десериализации
+try:
+    if hasattr(sys.modules.get('__main__'), '__dict__'):
+        sys.modules['__main__'].__dict__['NumericFeatureSelector'] = NumericFeatureSelector
+except Exception as e:
+    logging.warning(f"Could not register NumericFeatureSelector: {e}")
 
-# Импорт функций для расчета характеристик моделей из pkl файлов
+# Импорт функций для расчета характеристик моделей
 from model_manager.model_metrics import (
     extract_model_params,
     extract_feature_names,
@@ -44,10 +50,18 @@ from sklearn import set_config
 
 set_config(display='diagram')
 
-# Graphviz path для Windows
-graphviz_path = r'C:\Program Files\Graphviz\bin'
-if os.path.exists(graphviz_path) and graphviz_path not in os.environ.get('PATH', ''):
-    os.environ["PATH"] += os.pathsep + graphviz_path
+# Graphviz path - кроссплатформенный подход
+GRAPHVIZ_PATHS = [
+    r'C:\Program Files\Graphviz\bin',
+    r'C:\Program Files (x86)\Graphviz\bin',
+    '/usr/local/bin',
+    '/usr/bin'
+]
+
+for path in GRAPHVIZ_PATHS:
+    if os.path.exists(path) and path not in os.environ.get('PATH', ''):
+        os.environ["PATH"] = path + os.pathsep + os.environ.get('PATH', '')
+        break
 
 
 @contextmanager
@@ -59,52 +73,53 @@ def plt_context():
         plt.close('all')
 
 
-def _plot_to_base64(dpi=120):
+def _plot_to_base64(dpi: int = 120) -> str:
     """Конвертирует matplotlib график в base64-строку"""
     buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight', dpi=dpi,
-                facecolor='#1f2937', edgecolor='none')
-    buf.seek(0)
-    img_base64 = base64.b64encode(buf.read()).decode('utf-8')
-    buf.close()
-    plt.close()
-    return img_base64
+    try:
+        plt.savefig(buf, format='png', bbox_inches='tight', dpi=dpi,
+                    facecolor='#1f2937', edgecolor='none')
+        buf.seek(0)
+        img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+        return img_base64
+    finally:
+        buf.close()
+        plt.close('all')
 
 
-def _extract_params_from_classifier(classifier):
+def _extract_params_from_classifier(classifier) -> Dict[str, str]:
     """
     Извлекает гиперпараметры из классификатора через get_params() или атрибуты.
     Возвращает отфильтрованный dict с ключевыми параметрами.
     """
+    key_params = [
+        'n_estimators', 'max_depth', 'learning_rate', 'num_leaves',
+        'min_data_in_leaf', 'feature_fraction', 'bagging_fraction',
+        'subsample', 'colsample_bytree', 'gamma', 'reg_alpha', 'reg_lambda',
+        'min_samples_split', 'min_samples_leaf', 'max_features',
+        'criterion', 'contamination', 'random_state'
+    ]
+
     try:
-        # Универсальный способ для sklearn-совместимых моделей
         if hasattr(classifier, 'get_params'):
             all_params = classifier.get_params()
-            # Фильтруем только значимые параметры
-            key_params = [
-                'n_estimators', 'max_depth', 'learning_rate', 'num_leaves',
-                'min_data_in_leaf', 'feature_fraction', 'bagging_fraction',
-                'subsample', 'colsample_bytree', 'gamma', 'reg_alpha', 'reg_lambda',
-                'min_samples_split', 'min_samples_leaf', 'max_features',
-                'criterion', 'contamination', 'random_state'
-            ]
-            return {k: str(v) for k, v in all_params.items() if k in key_params and v is not None}
+            return {k: str(v) for k, v in all_params.items()
+                    if k in key_params and v is not None}
     except Exception:
         pass
 
     # Fallback: ручное извлечение атрибутов
     params = {}
-    for attr in ['n_estimators', 'max_depth', 'learning_rate', 'num_leaves',
-                 'min_data_in_leaf', 'feature_fraction', 'subsample',
-                 'colsample_bytree', 'criterion', 'contamination']:
+    for attr in key_params:
         if hasattr(classifier, attr):
             val = getattr(classifier, attr)
             if val is not None:
                 params[attr] = str(val)
+
     return params or {'info': 'Параметры недоступны'}
 
 
-def _extract_features_from_bundle(bundle):
+def _extract_features_from_bundle(bundle) -> List[str]:
     """
     Извлекает имена признаков из pipeline или классификатора.
     """
@@ -125,7 +140,7 @@ def _extract_features_from_bundle(bundle):
                 if hasattr(prep, 'get_feature_names_out'):
                     try:
                         return list(prep.get_feature_names_out())
-                    except:
+                    except Exception:
                         pass
                 if hasattr(prep, 'feature_names_in_'):
                     return list(prep.feature_names_in_)
@@ -141,7 +156,7 @@ def _extract_features_from_bundle(bundle):
     return [f'feature_{i}' for i in range(50)]
 
 
-def _get_model_metadata_from_file(model_id, env='test'):
+def _get_model_metadata_from_file(model_id: str, env: str = 'test') -> Optional[Dict]:
     """
     Загружает ВСЕ данные о модели напрямую из сохранённых файлов через ModelManager.
     НЕ использует статические конфиги. Использует функции из model_metrics.py.
@@ -149,12 +164,16 @@ def _get_model_metadata_from_file(model_id, env='test'):
     try:
         # Проверяем наличие ModelManager и модели
         if not hasattr(current_app, 'model_manager'):
+            current_app.logger.error("ModelManager not initialized")
             return None
-        if model_id not in current_app.model_manager.file_map:
+
+        model_manager = current_app.model_manager
+        if not hasattr(model_manager, 'file_map') or model_id not in model_manager.file_map:
+            current_app.logger.warning(f"Model {model_id} not found in file_map")
             return None
 
         # Загружаем бандл через ModelManager
-        bundle = current_app.model_manager._get_or_load_bundle(model_id, env)
+        bundle = model_manager._get_or_load_bundle(model_id, env)
         model_obj = bundle.pipeline
 
         # Извлекаем классификатор
@@ -177,7 +196,8 @@ def _get_model_metadata_from_file(model_id, env='test'):
         )
 
         # Добавляем флаг is_pipeline
-        metadata['is_pipeline'] = is_pipeline
+        if metadata:
+            metadata['is_pipeline'] = is_pipeline
 
         return metadata
 
@@ -189,15 +209,19 @@ def _get_model_metadata_from_file(model_id, env='test'):
         return None
 
 
-def _get_model_viz(model_id):
+def _get_model_viz(model_id: str) -> Dict[str, Any]:
     """Генерирует визуализацию для указанной модели"""
+    default_error = {'success': False, 'error': 'Visualization not available'}
+
     try:
         if not hasattr(current_app, 'model_manager'):
             return {'success': False, 'error': 'ModelManager not initialized'}
-        if model_id not in current_app.model_manager.file_map:
+
+        model_manager = current_app.model_manager
+        if not hasattr(model_manager, 'file_map') or model_id not in model_manager.file_map:
             return {'success': False, 'error': f'Model {model_id} not found'}
 
-        bundle = current_app.model_manager._get_or_load_bundle(model_id, 'test')
+        bundle = model_manager._get_or_load_bundle(model_id, 'test')
         model_obj = bundle.pipeline
 
         # Определяем тип объекта
@@ -218,27 +242,67 @@ def _get_model_viz(model_id):
             'is_pipeline': is_pipeline
         }}
 
+        # Параметры модели
+        tree_params = {}
+        if hasattr(classifier, 'booster_'):  # LightGBM
+            tree_params.update({
+                'num_leaves': getattr(classifier, 'num_leaves', None),
+                'max_depth': getattr(classifier, 'max_depth', None),
+                'n_estimators': getattr(classifier, 'n_estimators', None),
+                'learning_rate': getattr(classifier, 'learning_rate', None),
+                'model_type': 'LightGBM'
+            })
+        elif hasattr(classifier, 'get_booster'):  # XGBoost
+            tree_params.update({
+                'num_leaves': getattr(classifier, 'max_leaves', None),
+                'max_depth': getattr(classifier, 'max_depth', None),
+                'n_estimators': getattr(classifier, 'n_estimators', None),
+                'learning_rate': getattr(classifier, 'learning_rate', None),
+                'model_type': 'XGBoost'
+            })
+        elif hasattr(classifier, 'estimators_'):  # Random Forest
+            tree_params.update({
+                'n_estimators': getattr(classifier, 'n_estimators', None),
+                'max_depth': getattr(classifier, 'max_depth', None),
+                'criterion': getattr(classifier, 'criterion', None),
+                'model_type': 'Random Forest'
+            })
+
+        # Добавляем метрики если есть
+        if hasattr(bundle, 'metrics') and bundle.metrics:
+            tree_params.update({
+                'f1_score': bundle.metrics.get('f1_score'),
+                'roc_auc': bundle.metrics.get('roc_auc'),
+                'accuracy': bundle.metrics.get('accuracy'),
+                'training_time': bundle.metrics.get('training_time'),
+                'model_size': bundle.metrics.get('model_size_mb'),
+            })
+
+        result['params'] = tree_params
+
         # === График важности признаков ===
         if hasattr(classifier, 'feature_importances_'):
-            importances = classifier.feature_importances_
-            n_features = min(10, len(importances))
-            indices = np.argsort(importances)[-n_features:][::-1]
+            try:
+                importances = classifier.feature_importances_
+                n_features = min(10, len(importances))
+                indices = np.argsort(importances)[-n_features:][::-1]
 
-            plt.figure(figsize=(10, 6), facecolor='#1f2937')
-            plt.barh(range(n_features), importances[indices], color='#2E86AB')
+                plt.figure(figsize=(10, 6), facecolor='#1f2937')
+                plt.barh(range(n_features), importances[indices], color='#2E86AB')
 
-            labels = []
-            for idx in indices:
-                name = feature_names[idx] if idx < len(feature_names) else f'Feature_{idx}'
-                labels.append(name[:22] + '...' if len(name) > 25 else name)
+                labels = []
+                for idx in indices:
+                    name = feature_names[idx] if idx < len(feature_names) else f'Feature_{idx}'
+                    labels.append(name[:22] + '...' if len(name) > 25 else name)
 
-            plt.yticks(range(n_features), labels, fontsize=7)
-            plt.xlabel('Важность (Gain)', color='#9ca3af', fontsize=9)
-            plt.title('Важность признаков', color='white', fontsize=12)
-            plt.tick_params(colors='#9ca3af', labelsize=8)
-            plt.tight_layout()
-            result['importance'] = _plot_to_base64()
-            plt.close()
+                plt.yticks(range(n_features), labels, fontsize=7)
+                plt.xlabel('Важность (Gain)', color='#9ca3af', fontsize=9)
+                plt.title('Важность признаков', color='white', fontsize=12)
+                plt.tick_params(colors='#9ca3af', labelsize=8)
+                plt.tight_layout()
+                result['importance'] = _plot_to_base64()
+            except Exception as e:
+                current_app.logger.warning(f"Importance plot error: {e}")
 
         # === Дерево решений (если поддерживается) ===
         tree_img = None
@@ -251,7 +315,7 @@ def _get_model_viz(model_id):
                     plt.title('Дерево решений №1', color='white', fontsize=12)
                     plt.axis('off')
                     tree_img = _plot_to_base64()
-                    plt.close()
+                    plt.close('all')
 
             elif hasattr(classifier, 'get_booster'):  # XGBoost
                 import xgboost as xgb
@@ -265,35 +329,30 @@ def _get_model_viz(model_id):
                 plt.title(f'Дерево решений №1', color='white', fontsize=11)
                 plt.axis('off')
                 tree_img = _plot_to_base64()
-                plt.close()
+                plt.close('all')
 
             elif hasattr(classifier, 'estimators_') and hasattr(classifier, 'feature_names_in_'):  # RandomForest
                 from sklearn.tree import plot_tree
-                # Берем одно из деревьев для визуализации
                 if len(classifier.estimators_) > 0:
                     tree = classifier.estimators_[0]
-
-                    # Получаем ВСЕ имена признаков для корректного маппинга индексов
                     all_feature_names = list(classifier.feature_names_in_)
-
-                    # Создаём сокращённые имена только для отображения (но с сохранением индексов)
                     display_names = [name[:22] + '...' if len(name) > 25 else name
                                      for name in all_feature_names]
 
                     plt.figure(figsize=(16, 10), facecolor='#1f2937', dpi=120)
                     plot_tree(
                         tree,
-                        feature_names=display_names,  # Полный список, но с короткими именами
+                        feature_names=display_names,
                         class_names=[str(c)[:15] for c in classifier.classes_],
                         filled=True,
                         rounded=True,
-                        max_depth=3,  # Ограничиваем глубину для читаемости
+                        max_depth=3,
                         fontsize=8
                     )
                     plt.title('Дерево решений №1 (Random Forest)', color='white', fontsize=12)
                     plt.axis('off')
                     tree_img = _plot_to_base64()
-                    plt.close()
+                    plt.close('all')
         except Exception as e:
             current_app.logger.warning(f"Tree viz error for {model_id}: {e}")
 
@@ -301,14 +360,17 @@ def _get_model_viz(model_id):
 
         # === HTML представление Pipeline ===
         if is_pipeline and hasattr(pipeline, '_repr_html_'):
-            result['pipeline'] = pipeline._repr_html_()
-            result['pipeline_type'] = 'html'
+            try:
+                result['pipeline'] = pipeline._repr_html_()
+                result['pipeline_type'] = 'html'
+            except Exception:
+                pass
 
         return result
 
     except Exception as e:
         current_app.logger.error(f"Viz error {model_id}: {e}", exc_info=True)
-        return {'success': False, 'error': str(e)}
+        return default_error
 
 
 @bp.route('/')
@@ -364,7 +426,7 @@ def models():
 
 
 @bp.route('/detail/<model_id>')
-def model_detail(model_id):
+def model_detail(model_id: str):
     """
     Страница с подробным описанием модели.
     ВСЕ данные загружаются динамически из файлов через ModelManager.
@@ -373,12 +435,11 @@ def model_detail(model_id):
     project_config = load_config()
     project_name = project_config.get('project_name', 'ML Network Security Project')
 
-
     # 2. Загружаем метаданные модели ИЗ ФАЙЛА через ModelManager
     model = _get_model_metadata_from_file(model_id)
 
     current_app.logger.info(f"Loading model: {model_id}")
-    current_app.logger.info(f"Model data: {model}")
+
     if not model:
         return render_template('error.html',
                                message=f"Модель '{model_id}' не найдена или не может быть загружена",
@@ -391,10 +452,27 @@ def model_detail(model_id):
 
 
 @bp.route('/api/viz/<model_id>')
-def model_viz_api(model_id):
+def model_viz_api(model_id: str):
     """API endpoint для получения визуализации модели"""
     result = _get_model_viz(model_id)
     return jsonify(result)
+
+
+def _is_categorical_feature(col_name: str) -> bool:
+    """
+    Определяет, является ли признак категориальным (one-hot encoded).
+    Улучшенная логика определения.
+    """
+    # MAC-адреса и подобные паттерны
+    if ':' in col_name:
+        return True
+    # One-hot encoded признаки (обычно содержат конкретные значения после _)
+    if col_name.count('_') >= 2:
+        parts = col_name.split('_')
+        # Если последняя часть - короткое значение (не 'port', 'length' и т.д.)
+        if len(parts[-1]) <= 10 and parts[-1].isalnum():
+            return True
+    return False
 
 
 @bp.route('/predict', methods=['POST'])
@@ -418,26 +496,19 @@ def predict():
         return jsonify({"error": f"Модель '{selected_model_id}' не поддерживается."}), 400
 
     try:
-        # Создаём тестовые данные с правильными признаками
-        '''feature_names = getattr(current_app, 'REQUIRED_FEATURES',
-                                [f'feature_{i}' for i in range(50)])
-        dummy_data = {col: [np.random.normal(0, 1)] for col in feature_names}
-        dummy_df = pd.DataFrame(dummy_data)'''
-
         # Загружаем бандл модели для получения правильного набора признаков
         bundle = model_manager._get_or_load_bundle(selected_model_id, env)
+
         # Используем feature_names из бандла или извлекаем из pipeline
         feature_names = bundle.feature_names
         if feature_names is None:
             feature_names = _extract_features_from_bundle(bundle)
 
-        # Создаём тестовые данные с правильными признаками для конкретной модели
-        # Для числовых признаков - нормальное распределение, для категориальных (с цифрами в имени) - случайные значения
+        # Создаём тестовые данные с правильными признаками
         dummy_data = {}
         for col in feature_names:
-            # Простая эвристика: если имя содержит MAC-адрес или выглядит как категориальный - используем случайный выбор
-            if ':' in col or '_' in col.split('_')[-1] if '_' in col else False:
-                # Категориальный признак (one-hot encoded или类似)
+            if _is_categorical_feature(col):
+                # Категориальный признак (one-hot encoded)
                 dummy_data[col] = [np.random.choice([0, 1])]
             else:
                 # Числовой признак
@@ -463,7 +534,7 @@ def predict():
                                   for k, v in threat_dist.items()
                               ] or [{'type': 'Нет угроз', 'count': 0, 'percentage': 0, 'color': 'green'}]
 
-        # Сохранение результатов в session
+        # Сохранение результатов в session (с ограничением размера)
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         analysis_results = {
             "filename": f"analysis_{selected_model_id}_{timestamp.replace(':', '-')}.csv",
@@ -485,7 +556,9 @@ def predict():
             'threats': threats_count,
             'timestamp': timestamp
         })
+        # Ограничиваем историю 5 записями
         session['recent_analyses'] = recent[:5]
+        session.modified = True
 
         return jsonify({
             "status": "success",
@@ -497,4 +570,4 @@ def predict():
 
     except Exception as e:
         current_app.logger.error(f"Predict error: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Ошибка при выполнении предсказания. Проверьте логи сервера."}), 500
