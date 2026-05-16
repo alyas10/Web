@@ -98,23 +98,48 @@
                     </div>
                     {% endif %}
                 </div>
-
-                <!-- Feature Importance -->
-                <div class="card card-full">
-                    <h4 class="card-title mb-4">Feature Importance - {{ model.model_name }}</h4>
-                    {% if model.feature_importance_img %}
-                    <img src="data:image/png;base64,{{ model.feature_importance_img }}" alt="Feature Importance" style="width: 100%; height: auto; border-radius: 0.5rem;">
-                    {% else %}
-                    <div class="viz-placeholder viz-horizontal">
-                        <p class="viz-subtitle">График недоступен</p>
-                    </div>
-                    {% endif %}
-                </div>
             </div>
         </div>
 
         <hr style="border-color: #374151; margin: 2rem 0;">
         {% endfor %}
+<!-- Сравнительная таблица моделей -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Сравнительный анализ моделей</h3>
+            </div>
+            <div class="table-container">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Модель</th>
+                            <th>Accuracy</th>
+                            <th>F1-Score</th>
+                            <th>ROC-AUC</th>
+                            <th>Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for model in comparison_table %}
+                        <tr class="{{ 'best-model-row' if model.is_best else '' }}">
+                            <td>{{ model.model_name }}</td>
+                            <td>{{ model.accuracy }}</td>
+                            <td>{{ model.f1_score }}</td>
+                            <td>{{ model.roc_auc }}</td>
+                            <td>
+                                {% if model.is_best %}
+                                <span class="badge badge-best">Лучшая модель</span>
+                                {% else %}
+                                <span class="badge badge-default">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="table-note">* Лучшая модель определена по максимальному значению Accuracy</p>
+        </div>
     </div>
 </div>
 
@@ -176,5 +201,63 @@
     border-radius: 50%;
 }
 .text-red { color: #ef4444; }
+
+/* Стили для сравнительной таблицы */
+.table-container {
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+.comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #1f2937;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+.comparison-table th,
+.comparison-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #374151;
+}
+.comparison-table th {
+    background: #111827;
+    color: #9ca3af;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.comparison-table td {
+    color: #e5e7eb;
+    font-size: 0.95rem;
+}
+.comparison-table tbody tr:hover {
+    background: #374151;
+}
+.best-model-row {
+    background: rgba(16, 185, 129, 0.1) !important;
+}
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.badge-best {
+    background: #10B981;
+    color: white;
+}
+.badge-default {
+    background: #374151;
+    color: #9ca3af;
+}
+.table-note {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-style: italic;
+}
 </style>
 {% endblock %}
