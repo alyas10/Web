@@ -166,7 +166,7 @@ class ModelManager:
 
         # 1. Конвертация object → category для tree-based моделей
         if algo in ("lightgbm", "xgboost", "random_forest"):
-            for col in result.select_dtypes(include='object').columns:
+            for col in result.select_dtypes(include=['object','string']).columns:
                 if col in expected_features:
                     result[col] = result[col].astype('category')
 
