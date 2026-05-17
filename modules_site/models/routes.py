@@ -414,12 +414,14 @@ def models():
         {
             'id': 'isolation_forest',
             'name': 'Isolation Forest',
-            'description': 'Unsupervised алгоритм для обнаружения аномалий. Идеален для выявления новых типов атак без предварительной разметки.',
+             'description': 'Unsupervised алгоритм для обнаружения аномалий. Использует стратегию One-vs-Rest для многоклассовой классификации: обучается отдельная модель для каждого класса, при предсказании выбирается класс с наименьшим скором аномальности.',
             'params': [
-                {'label': 'Число деревьев', 'key': 'n_estimators', 'type': 'number', 'value': 100},
-                {'label': 'Contamination', 'key': 'contamination', 'type': 'number', 'value': 0.1, 'step': 0.01},
+                {'label': 'Число деревьев', 'key': 'n_estimators', 'type': 'number', 'value': 200},
+                {'label': 'Max Samples', 'key': 'max_samples', 'type': 'number', 'value': 512},
+                {'label': 'Contamination', 'key': 'contamination', 'type': 'number', 'value': 'auto'},
+                {'label': 'Max Features', 'key': 'max_features', 'type': 'number', 'value': 0.8, 'step': 0.1},
             ],
-            'has_viz': False
+            'has_viz': True
         },
     ]
     return render_template('models.html', models=ml_models)
