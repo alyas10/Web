@@ -108,6 +108,7 @@ def _extract_params_from_classifier(classifier) -> Dict[str, str]:
     except Exception:
         pass
 
+
     # Fallback: ручное извлечение атрибутов
     params = {}
     for attr in key_params:
@@ -151,6 +152,13 @@ def _extract_features_from_bundle(bundle) -> List[str]:
 
     except Exception:
         pass
+
+    # Fallback: пробуем загрузить из feature_names.txt
+    if hasattr(bundle, 'root_dir') and bundle.root_dir:
+        feature_names_file = bundle.root_dir / "feature_names.txt"
+        if feature_names_file.exists():
+            with open(feature_names_file, 'r', encoding='utf-8') as f:
+                return [line.strip() for line in f if line.strip()]
 
     # Fallback: заглушка
     return [f'feature_{i}' for i in range(50)]
@@ -209,6 +217,52 @@ def _get_model_metadata_from_file(model_id: str, env: str = 'test') -> Optional[
         return None
 
 
+def _compute_if_feature_importance(models_dict, feature_names, n_top=10):
+    """
+    Вычисляет важность признаков для Isolation Forest через частоту использования в разбиениях.
+    Isolation Forest не имеет feature_importances_, поэтому считаем эвристику.
+    """
+    if not isinstance(models_dict, dict) or len(models_dict) == 0:
+        return None, None
+
+    n_features = len(feature_names)
+    importance_accumulator = np.zeros(n_features)
+    model_count = 0
+
+    for cls_name, model in models_dict.items():
+        try:
+            # Isolation Forest не имеет feature_importances_, считаем через деревья
+            if hasattr(model, 'estimators_') and len(model.estimators_) > 0:
+                tree_importances = np.zeros(n_features)
+                for tree in model.estimators_:
+                    # Получаем структуру дерева
+                    tree_struct = tree.tree_
+                    # Считаем, сколько раз каждый признак используется для разбиения
+                    for node in range(tree_struct.node_count):
+                        feature_idx = tree_struct.feature[node]
+                        if feature_idx >= 0 and feature_idx < n_features:  # не лист
+                            tree_importances[feature_idx] += 1
+                # Нормализуем по числу деревьев
+                if len(model.estimators_) > 0:
+                    imp = tree_importances / len(model.estimators_)
+                else:
+                    continue
+                importance_accumulator += imp
+                model_count += 1
+        except Exception as e:
+            current_app.logger.warning(f"Error computing importance for class {cls_name}: {e}")
+            continue
+
+    if model_count == 0:
+        return None, None
+
+    importance_avg = importance_accumulator / model_count
+
+    # Возвращаем топ-N
+    n_top = min(n_top, len(importance_avg))
+    indices = np.argsort(importance_avg)[-n_top:][::-1]
+    return indices, importance_avg[indices]
+
 def _get_model_viz(model_id: str) -> Dict[str, Any]:
     """Генерирует визуализацию для указанной модели"""
     default_error = {'success': False, 'error': 'Visualization not available'}
@@ -224,7 +278,7 @@ def _get_model_viz(model_id: str) -> Dict[str, Any]:
         bundle = model_manager._get_or_load_bundle(model_id, 'test')
         model_obj = bundle.pipeline
 
-        # Определяем тип объекта
+        # Определяем тип объекта: пайплайн или прямой классификатор
         if hasattr(model_obj, 'named_steps') and 'classifier' in model_obj.named_steps:
             pipeline = model_obj
             classifier = pipeline.named_steps['classifier']
@@ -242,8 +296,10 @@ def _get_model_viz(model_id: str) -> Dict[str, Any]:
             'is_pipeline': is_pipeline
         }}
 
-        # Параметры модели
+        # === Извлечение параметров модели ===
         tree_params = {}
+        model_type_name = type(classifier).__name__
+
         if hasattr(classifier, 'booster_'):  # LightGBM
             tree_params.update({
                 'num_leaves': getattr(classifier, 'num_leaves', None),
@@ -254,45 +310,103 @@ def _get_model_viz(model_id: str) -> Dict[str, Any]:
             })
         elif hasattr(classifier, 'get_booster'):  # XGBoost
             tree_params.update({
-                'num_leaves': getattr(classifier, 'max_leaves', None),
+                'max_leaves': getattr(classifier, 'max_leaves', None),
                 'max_depth': getattr(classifier, 'max_depth', None),
                 'n_estimators': getattr(classifier, 'n_estimators', None),
                 'learning_rate': getattr(classifier, 'learning_rate', None),
                 'model_type': 'XGBoost'
             })
-        elif hasattr(classifier, 'estimators_'):  # Random Forest
+        elif hasattr(classifier, 'estimators_') and not isinstance(classifier, dict):  # Random Forest
             tree_params.update({
                 'n_estimators': getattr(classifier, 'n_estimators', None),
                 'max_depth': getattr(classifier, 'max_depth', None),
                 'criterion': getattr(classifier, 'criterion', None),
                 'model_type': 'Random Forest'
             })
+        elif model_type_name == 'IsolationForest':  # Isolation Forest (одна модель)
+            tree_params.update({
+                'n_estimators': getattr(classifier, 'n_estimators', None),
+                'max_samples': getattr(classifier, 'max_samples', None),
+                'contamination': getattr(classifier, 'contamination', None),
+                'max_features': getattr(classifier, 'max_features', None),
+                'random_state': getattr(classifier, 'random_state', None),
+                'model_type': 'Isolation Forest'
+            })
+        elif isinstance(classifier, dict) and len(classifier) > 0:  # Isolation Forest One-vs-Rest
+            first_model = list(classifier.values())[0]
+            tree_params.update({
+                'n_estimators': getattr(first_model, 'n_estimators', None),
+                'max_samples': getattr(first_model, 'max_samples', None),
+                'contamination': getattr(first_model, 'contamination', None),
+                'max_features': getattr(first_model, 'max_features', None),
+                'model_type': 'Isolation Forest (One-vs-Rest)',
+                'n_class_models': len(classifier),
+                'strategy': 'One-vs-Rest: отдельная модель для каждого класса'
+            })
 
-        # Добавляем метрики если есть
+        # Добавляем метрики если есть в бандле
         if hasattr(bundle, 'metrics') and bundle.metrics:
             tree_params.update({
                 'f1_score': bundle.metrics.get('f1_score'),
                 'roc_auc': bundle.metrics.get('roc_auc'),
                 'accuracy': bundle.metrics.get('accuracy'),
-                'training_time': bundle.metrics.get('training_time'),
-                'model_size': bundle.metrics.get('model_size_mb'),
             })
 
         result['params'] = tree_params
 
-        # === График важности признаков ===
-        if hasattr(classifier, 'feature_importances_'):
-            try:
+        # === График важности признаков (если доступен) ===
+        try:
+            indices = None
+            importances = None
+            n_features = 0
+
+            if hasattr(classifier, 'feature_importances_') and not isinstance(classifier, dict):
                 importances = classifier.feature_importances_
                 n_features = min(10, len(importances))
                 indices = np.argsort(importances)[-n_features:][::-1]
+            # Случай 2: Isolation Forest One-vs-Rest (dict моделей)
+            elif isinstance(classifier, dict) and len(classifier) > 0:
+                indices, importances = _compute_if_feature_importance(
+                    classifier, feature_names, n_top=10
+                )
+                if indices is not None:
+                    n_features = len(indices)
 
+            # Случай 3: Единичная модель Isolation Forest
+            elif isinstance(classifier, dict) and len(classifier) > 0:
+                n_features_total = len(feature_names)
+                tree_importances = np.zeros(n_features_total)
+
+                for tree in classifier.estimators_:
+                    # Получаем структуру дерева
+                    tree_struct = tree.tree_
+                    # Считаем, сколько раз каждый признак используется для разбиения
+                    for node in range(tree_struct.node_count):
+                        feature_idx = tree_struct.feature[node]
+                        if feature_idx >= 0 and feature_idx < n_features_total:  # не лист
+                            tree_importances[feature_idx] += 1
+
+                # Нормализуем по количеству деревьев
+                importances = tree_importances / len(classifier.estimators_)
+                n_features = min(10, len(importances))
+                indices = np.argsort(importances)[-n_features:][::-1]
+
+            # Если важность вычислена — строим график
+            if indices is not None and importances is not None and len(indices) > 0:
                 plt.figure(figsize=(10, 6), facecolor='#1f2937')
-                plt.barh(range(n_features), importances[indices], color='#2E86AB')
+                # Явно определяем значения для графика
+                if isinstance(classifier, dict):
+                    # Isolation Forest: importances уже отфильтрованы функцией _compute_if_feature_importance
+                    plot_values = importances
+                else:
+                    # RandomForest/XGBoost/LightGBM: нужно взять значения по индексам из полного массива
+                    plot_values = importances[indices] if indices is not None else importances
+                plt.barh(range(n_features), plot_values, color='#2E86AB')
 
                 labels = []
-                for idx in indices:
-                    name = feature_names[idx] if idx < len(feature_names) else f'Feature_{idx}'
+                for i in range(n_features):
+                    feat_idx = indices[i]  # глобальный индекс признака
+                    name = feature_names[feat_idx] if feat_idx < len(feature_names) else f'Feature_{feat_idx}'
                     labels.append(name[:22] + '...' if len(name) > 25 else name)
 
                 plt.yticks(range(n_features), labels, fontsize=7)
@@ -301,10 +415,11 @@ def _get_model_viz(model_id: str) -> Dict[str, Any]:
                 plt.tick_params(colors='#9ca3af', labelsize=8)
                 plt.tight_layout()
                 result['importance'] = _plot_to_base64()
-            except Exception as e:
-                current_app.logger.warning(f"Importance plot error: {e}")
+                plt.close('all')
+        except Exception as e:
+            current_app.logger.warning(f"Importance plot error: {e}")
 
-        # === Дерево решений (если поддерживается) ===
+        # === Визуализация модели (дерево или альтернатива) ===
         tree_img = None
         try:
             if hasattr(classifier, 'booster_'):  # LightGBM
@@ -322,11 +437,11 @@ def _get_model_viz(model_id: str) -> Dict[str, Any]:
                 booster = classifier.get_booster()
                 plt.figure(figsize=(24, 16), facecolor='#1f2937', dpi=200)
                 xgb.plot_tree(
-                    booster, num_trees=0, rankdir='LR',
+                    booster, tree_idx=0, rankdir='LR',
                     condition_node_params={'shape': 'box', 'style': 'filled,rounded', 'fillcolor': '#78bceb'},
                     leaf_node_params={'shape': 'box', 'style': 'filled', 'fillcolor': '#e48038'}
                 )
-                plt.title(f'Дерево решений №1', color='white', fontsize=11)
+                plt.title('Дерево решений №1', color='white', fontsize=11)
                 plt.axis('off')
                 tree_img = _plot_to_base64()
                 plt.close('all')
@@ -353,12 +468,74 @@ def _get_model_viz(model_id: str) -> Dict[str, Any]:
                     plt.axis('off')
                     tree_img = _plot_to_base64()
                     plt.close('all')
+
+            elif isinstance(classifier, dict) and len(classifier) > 0:  # Isolation Forest One-vs-Rest
+                # Альтернативная визуализация: распределение скоров аномальности
+                # Берём первую модель для демонстрации
+                first_cls_name = list(classifier.keys())[0]
+                first_model = classifier[first_cls_name]
+
+                # Загружаем тестовые данные для визуализации (если доступны в бандле)
+                # Или генерируем синтетические для демонстрации
+                try:
+                    # Пытаемся загрузить признаки из файла для генерации демо-данных
+                    if hasattr(bundle, 'root_dir'):
+                        feat_path = bundle.root_dir / 'feature_names.txt'
+                        if feat_path.exists():
+                            with open(feat_path, 'r', encoding='utf-8') as f:
+                                demo_features = [line.strip() for line in f if line.strip()]
+                            n_feat = len(demo_features)
+                        else:
+                            n_feat = 50
+                            demo_features = [f'feature_{i}' for i in range(n_feat)]
+                    else:
+                        n_feat = 50
+                        demo_features = [f'feature_{i}' for i in range(n_feat)]
+
+                    # Генерируем демо-данные для визуализации
+                    np.random.seed(42)
+                    n_samples = 500
+                    X_demo = np.random.randn(n_samples, n_feat)
+
+                    # Получаем скоры от модели
+                    scores = first_model.decision_function(X_demo)
+
+                    # Визуализация: гистограмма распределения скоров
+                    plt.figure(figsize=(10, 6), facecolor='#1f2937')
+
+                    # Разбиваем на квантили для наглядности
+                    q25, q50, q75 = np.percentile(scores, [25, 50, 75])
+
+                    plt.hist(scores, bins=40, alpha=0.8, color='#2E86AB', edgecolor='white')
+                    plt.axvline(q50, color='#E74C3C', linestyle='--', linewidth=2, label=f'Медиана: {q50:.3f}')
+                    plt.axvline(q25, color='#F39C12', linestyle=':', linewidth=1.5, label=f'Q25: {q25:.3f}')
+                    plt.axvline(q75, color='#F39C12', linestyle=':', linewidth=1.5, label=f'Q75: {q75:.3f}')
+
+                    plt.xlabel('Anomaly Score\n(чем больше → объект более "нормальный" для этого класса)',
+                               color='#9ca3af', fontsize=9)
+                    plt.ylabel('Частота', color='#9ca3af', fontsize=9)
+                    plt.title(f'Распределение скоров для класса "{first_cls_name}"\n(Isolation Forest)',
+                              color='white', fontsize=11)
+                    plt.legend(fontsize=8, framealpha=0.9)
+                    plt.grid(alpha=0.3, axis='y')
+                    plt.tight_layout()
+                    tree_img = _plot_to_base64()
+                    plt.close('all')
+
+                except Exception as viz_e:
+                    current_app.logger.warning(f"IF viz demo error: {viz_e}")
+                    # Если демо-визуализация не удалась — возвращаем None
+                    tree_img = None
+
+            # Если модель не поддерживает визуализацию — tree_img остаётся None
+
         except Exception as e:
             current_app.logger.warning(f"Tree viz error for {model_id}: {e}")
+            tree_img = None  # Не ломаем ответ, просто не показываем дерево
 
         result['tree'] = tree_img
 
-        # === HTML представление Pipeline ===
+        # === HTML представление Pipeline (если есть) ===
         if is_pipeline and hasattr(pipeline, '_repr_html_'):
             try:
                 result['pipeline'] = pipeline._repr_html_()
@@ -371,7 +548,6 @@ def _get_model_viz(model_id: str) -> Dict[str, Any]:
     except Exception as e:
         current_app.logger.error(f"Viz error {model_id}: {e}", exc_info=True)
         return default_error
-
 
 @bp.route('/')
 def models():
