@@ -92,12 +92,22 @@ def extract_feature_names(bundle: Any) -> List[str]:
     try:
         model_obj = bundle.pipeline
 
+        # Случай 1: Isolation Forest One-vs-Rest (dict моделей)
+        if isinstance(model_obj, dict) and len(model_obj) > 0:
+            # Берём первую модель из dict для извлечения feature_names_in_
+            first_model = list(model_obj.values())[0]
+            if hasattr(first_model, 'feature_names_in_'):
+                return list(first_model.feature_names_in_)
+
+        # Случай 2: sklearn Pipeline
         if hasattr(model_obj, 'named_steps'):
+            # Пробуем получить из классификатора
             if 'classifier' in model_obj.named_steps:
                 clf = model_obj.named_steps['classifier']
                 if hasattr(clf, 'feature_names_in_'):
                     return list(clf.feature_names_in_)
 
+            # Пробуем получить из preprocessor
             if 'preprocessor' in model_obj.named_steps:
                 prep = model_obj.named_steps['preprocessor']
                 if hasattr(prep, 'get_feature_names_out'):
@@ -108,12 +118,21 @@ def extract_feature_names(bundle: Any) -> List[str]:
                 if hasattr(prep, 'feature_names_in_'):
                     return list(prep.feature_names_in_)
 
+        # Случай 3: Прямой классификатор
         if hasattr(model_obj, 'feature_names_in_'):
             return list(model_obj.feature_names_in_)
 
-    except Exception:
+    except Exception as e:
         pass
 
+    # Fallback: пробуем загрузить из feature_names.txt
+    if hasattr(bundle, 'root_dir') and bundle.root_dir:
+        feature_names_file = bundle.root_dir / "feature_names.txt"
+        if feature_names_file.exists():
+            with open(feature_names_file, 'r', encoding='utf-8') as f:
+                return [line.strip() for line in f if line.strip()]
+
+    # Fallback: заглушка
     return [f'feature_{i}' for i in range(50)]
 
 
@@ -442,7 +461,27 @@ def extract_model_metadata(
     Returns:
         Dict со всеми метаданными для отображения в model_detail.html
     """
-    model_type = type(classifier).__name__
+    # Определяем тип модели (учитываем случай dict для Isolation Forest One-vs-Rest)
+    if isinstance(classifier, dict) and len(classifier) > 0:
+        # Isolation Forest One-vs-Rest - берём тип первой модели
+        first_model = list(classifier.values())[0]
+        model_type = type(first_model).__name__
+        is_dict_model = True
+    else:
+        model_type = type(classifier).__name__
+        is_dict_model = False
+
+    # Функция для получения читаемого имени модели
+    def _get_model_display_name(model_type: str) -> str:
+        """Возвращает читаемое название модели для заголовка."""
+        name_mapping = {
+            'LGBMClassifier': 'LightGBM',
+            'XGBClassifier': 'XGBoost',
+            'RandomForestClassifier': 'Random Forest',
+            'IsolationForest': 'Isolation Forest',
+            'GradientBoostingClassifier': 'Gradient Boosting',
+        }
+        return name_mapping.get(model_type, model_type.replace('Classifier', '').replace('Forest', ' Forest'))
 
     # Расчет точности
     accuracy = None
@@ -477,7 +516,7 @@ def extract_model_metadata(
 
     return {
         'id': model_id,
-        'name': model_type.replace('Classifier', '').replace('Forest', ' Forest'),
+        'name': _get_model_display_name(model_type),
         'tagline': get_model_description(model_type),
         'type': get_model_type_display(model_type),
         'speed': get_model_speed(model_type),
