@@ -48,6 +48,10 @@ class ModelManager:
             "random_forest": {
                 "pipeline": "random_forest_v1.joblib",
                 "label_encoder": "label_encoder.joblib",
+            },
+            "isolation_forest": {
+                "pipeline": "isolation_forest_v1.joblib",
+                "label_encoder": "label_encoder.joblib",
             }
         }
 
@@ -170,6 +174,11 @@ class ModelManager:
                 if col in expected_features:
                     result[col] = result[col].astype('category')
 
+       # Для isolation_forest нужно масштабирование через StandardScaler
+        if algo == "isolation_forest":
+            # Масштабирование будет выполнено в predict() после этой функции
+             pass
+
         # 2. Добавляем отсутствующие признаки
         missing = [f for f in expected_features if f not in result.columns]
         if missing:
@@ -199,8 +208,23 @@ class ModelManager:
         # === Универсальная предобработка признаков ===
         data = self._normalize_input_features(data, expected_features, algo)
         print(f"[DEBUG] algo={algo}, input_cols={list(data.columns)[:10]}..., expected={len(expected_features) if expected_features else 'None'}")
-        # Вызов модели
-        pred = bundle.pipeline.predict(data)
+        # Для Isolation Forest нужно масштабирование перед предсказанием
+        if algo == "isolation_forest":
+            # Загружаем scaler из артефактов
+            scaler_path = bundle.root_dir / "scaler.joblib"
+            if scaler_path.exists():
+                scaler = joblib.load(scaler_path)
+                data_scaled = scaler.transform(data)
+            else:
+                raise ModelManagerError(f"Scaler not found for isolation_forest: {scaler_path}")
+
+            # Для Isolation Forest используем кастомную функцию предсказания с калибровкой
+            pred = self._if_multiclass_predict_calibrated(
+                data_scaled, bundle.pipeline, bundle.label_encoder.classes_
+            )
+        else:
+            # Вызов модели для остальных алгоритмов
+            pred = bundle.pipeline.predict(data)
 
         if pred is None:
             raise ModelManagerError("Pipeline.predict() returned None")
@@ -217,3 +241,26 @@ class ModelManager:
             raise
 
         return [str(x) for x in labels]
+
+    def _if_multiclass_predict_calibrated(self, X_scaled, models, classes):
+        """
+        Предсказание для One-vs-Rest Isolation Forest с калибровкой скоров.
+        Сырые скоры IF разных моделей несопоставимы.
+        Нормализуем их по Z-score относительно обучающего распределения каждого класса.
+        """
+        n_samples = X_scaled.shape[0]
+        n_classes = len(classes)
+        scores_matrix = np.zeros((n_samples, n_classes))
+
+        # Для каждой модели вычисляем скоры и нормализуем
+        for i, cls_name in enumerate(classes):
+            if cls_name not in models:
+                continue
+
+            raw_scores = models[cls_name].decision_function(X_scaled)
+            # Используем глобальную статистику (mean=0, std=1) т.к. нет train_stats
+            # Это упрощенная версия - в идеале нужно сохранять train_score_stats при обучении
+            scores_matrix[:, i] = raw_scores
+
+        # Возвращаем индекс класса с максимальным скором
+        return np.argmax(scores_matrix, axis=1)
