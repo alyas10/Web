@@ -146,13 +146,36 @@
 <style>
 .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 1.5rem; }
 .metric-card {
-    background: #1f2937;
-    border: 1px solid #374151;
-    border-radius: 0.75rem;
-    padding: 1.5rem;
-    transition: border-color 0.2s;
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+  animation: fadeInUp 0.4s ease both;
 }
-.metric-card:hover { border-color: #4b5563; }
+.metric-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #0077cc, #00c7b1);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.metric-card:hover {
+  border-color: #0077cc;
+  box-shadow: 0 0 20px rgba(0, 119, 204, 0.2);
+  transform: translateY(-2px);
+}
+
+.metric-card:hover::after {
+  transform: scaleX(1);
+}
+
 .metric-header { display: flex; gap: 1rem; }
 .metric-icon-wrapper {
     width: 3rem;
@@ -165,7 +188,14 @@
 }
 .metric-icon { width: 1.5rem; height: 1.5rem; }
 .metric-label { font-size: 0.875rem; color: #9ca3af; }
-.metric-value { font-size: 1.5rem; font-weight: 700; color: white; margin-top: 0.25rem; }
+.metric-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+  margin-top: 0.25rem;
+  font-family: 'Roboto Mono', monospace;
+  letter-spacing: -0.025em;
+}
 .viz-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
 .card-full { grid-column: span 2; }
 .model-section { margin-bottom: 3rem; }
@@ -258,6 +288,22 @@
     font-size: 0.875rem;
     color: #6b7280;
     font-style: italic;
+}
+
+@keyframes fadeInUp 
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.metrics-grid .metric-card:nth-child(1) { animation-delay: 0.1s; }
+.metrics-grid .metric-card:nth-child(2) { animation-delay: 0.18s; }
+.metrics-grid .metric-card:nth-child(3) { animation-delay: 0.26s; }
+
+.model-section { animation: fadeInUp 0.5s ease both; }
+
+.best-model-row td { font-weight: 600; }
+.comparison-table tbody tr {
+  transition: background 0.2s ease;
 }
 </style>
 {% endblock %}
