@@ -28,9 +28,10 @@
 }
 
 .upload-zone.dragging {
-    border-color: var(--accent-green);
-    background: rgba(16, 185, 129, 0.05);
-    scale: 1.02;
+  border-color: var(--accent-green);
+  background: rgba(16, 185, 129, 0.08);
+  scale: 1.01;
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.15);
 }
 
 /* Анимированная иконка загрузки */
@@ -104,10 +105,10 @@
 }
 
 .visualization-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); /* Пример ширины */
-    gap: 1.5rem;
-    margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
 }
 
 .visualization-card {
