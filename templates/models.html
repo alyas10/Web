@@ -205,6 +205,23 @@ select.input-field {
     transition: color 0.2s;
 }
 .modal-close:hover { color: white; }
+
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.model-card {
+  /* добавить к существующим свойствам: */
+  animation: fadeInUp 0.4s ease both;
+}
+
+.models-grid-2 .model-card:nth-child(1) { animation-delay: 0.05s; }
+.models-grid-2 .model-card:nth-child(2) { animation-delay: 0.1s; }
+.models-grid-2 .model-card:nth-child(3) { animation-delay: 0.15s; }
+.models-grid-2 .model-card:nth-child(4) { animation-delay: 0.2s; }
+
 /* Стили вкладок (Tabs) */
 .viz-tabs-nav {
     display: flex;
@@ -252,6 +269,28 @@ select.input-field {
     .viz-btn:active { transform: translateY(0); }
     @media (max-width: 768px) { .viz-btn { width: 100%; justify-content: center; } }
 
+.model-detail-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #374151;
+  color: #9CA3AF;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  margin-top: 0.75rem;
+}
+
+.model-detail-link:hover {
+  background: #2196F3;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
 
 /* Контейнер карточки */
 .viz-card {
@@ -495,15 +534,14 @@ select.input-field {
                 </button>
                 {% endif %}
 
-                    <a href="{{ url_for('models.model_detail', model_id=model.id) }}" class="model-detail-link" style="display: inline-flex; align-items: center; gap: 0.35rem; background: #374151; color: #9CA3AF; border: none; border-radius: 0.5rem; padding: 0.4rem 0.85rem; font-size: 0.8rem; font-weight: 500; text-decoration: none; transition: all 0.2s ease; margin-top: 0.75rem;" onmouseover="this.style.background='#2196F3'; this.style.color='white'" onmouseout="this.style.background='#374151'; this.style.color='#9CA3AF'">
-                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                Подробнее
-                </a>
+                    <a href="{{ url_for('models.model_detail', model_id=model.id) }}" class="model-detail-link">
+                      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                   Подробнее
+                      </a>
 
                 </div>
-
                 <div class="radio-button">
                     <input type="radio" name="selected_model" value="{{ model.id }}" id="model-{{ model.id }}" {% if loop.first %}checked{% endif %}>
                     <label for="model-{{ model.id }}"></label>
@@ -517,10 +555,7 @@ select.input-field {
 
 </div>
 
-
 {% endblock %}
-
-
 {% block scripts %}
     {{ super() }}
     <script src="{{ url_for('static', filename='js/models_script.js') }}"></script>
