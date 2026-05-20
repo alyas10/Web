@@ -168,11 +168,28 @@ class ModelManager:
 
         result = data.copy()
 
+        # Добавляем отсутствующие признаки
+        missing = [f for f in expected_features if f not in result.columns]
+        for col in missing:
+            result[col] = 0
+
+        # Удаляем лишние колонки
+        extra = [c for c in result.columns if c not in expected_features]
+        if extra:
+            result = result.drop(columns=extra)
+
+        # Сортируем в правильном порядке
+        result = result[expected_features]
+
         # 1. Конвертация object → category для tree-based моделей
-        if algo in ("lightgbm", "xgboost", "random_forest"):
-            for col in result.select_dtypes(include=['object','string']).columns:
-                if col in expected_features:
-                    result[col] = result[col].astype('category')
+        # Данные при обучении были предварительно закодированы в числа;
+        # принудительно конвертируем строковые/категориальные колонки в float
+        if algo in ("xgboost", "random_forest", "isolation_forest"):
+            for col in result.columns:
+                if result[col].dtype == object or hasattr(result[col].dtype, 'categories'):
+                    result[col] = pd.to_numeric(result[col], errors='coerce').fillna(0)
+
+        return result
 
        # Для isolation_forest нужно масштабирование через StandardScaler
         if algo == "isolation_forest":
@@ -183,8 +200,17 @@ class ModelManager:
         missing = [f for f in expected_features if f not in result.columns]
         if missing:
             for col in missing:
-                # Для one-hot encoded признаков (с '_' и ':') — 0, иначе — 0
-                result[col] = 0
+                # Бинарные OHE-признаки: содержат '_' с разделителем значения
+                # или начинаются с Protocol_, IP_, TCP_, LastProto_ и т.д.
+                is_binary_ohe = (
+                        col.count('_') >= 1 and
+                        any(col.startswith(pfx) for pfx in [
+                            'Protocol_', 'IP Protocol_', 'HTTP Response Code_',
+                            'TCP Flags_', 'IP Flags_', 'Ethernet Type_',
+                            'ICMP Type_', 'LastProto_'
+                        ])
+                )
+                result[col] = 0 if is_binary_ohe else "Unknown"
 
         # 3. Удаляем лишние колонки
         extra = [c for c in result.columns if c not in expected_features]
@@ -212,15 +238,18 @@ class ModelManager:
         if algo == "isolation_forest":
             # Загружаем scaler из артефактов
             scaler_path = bundle.root_dir / "scaler.joblib"
+            stats_path = bundle.root_dir / "train_score_stats.joblib"
             if scaler_path.exists():
                 scaler = joblib.load(scaler_path)
                 data_scaled = scaler.transform(data)
+                train_score_stats = joblib.load(stats_path) if stats_path.exists() else None
             else:
                 raise ModelManagerError(f"Scaler not found for isolation_forest: {scaler_path}")
 
             # Для Isolation Forest используем кастомную функцию предсказания с калибровкой
             pred = self._if_multiclass_predict_calibrated(
-                data_scaled, bundle.pipeline, bundle.label_encoder.classes_
+                data_scaled, bundle.pipeline, bundle.label_encoder.classes_,
+                train_score_stats
             )
         else:
             # Вызов модели для остальных алгоритмов
@@ -242,25 +271,28 @@ class ModelManager:
 
         return [str(x) for x in labels]
 
-    def _if_multiclass_predict_calibrated(self, X_scaled, models, classes):
+    def _if_multiclass_predict_calibrated(self, X_scaled, models, classes,
+                                           train_score_stats=None):
         """
-        Предсказание для One-vs-Rest Isolation Forest с калибровкой скоров.
-        Сырые скоры IF разных моделей несопоставимы.
-        Нормализуем их по Z-score относительно обучающего распределения каждого класса.
+        Предсказание для One-vs-Rest Isolation Forest с Z-score калибровкой скоров.
         """
         n_samples = X_scaled.shape[0]
         n_classes = len(classes)
         scores_matrix = np.zeros((n_samples, n_classes))
 
-        # Для каждой модели вычисляем скоры и нормализуем
         for i, cls_name in enumerate(classes):
             if cls_name not in models:
                 continue
 
             raw_scores = models[cls_name].decision_function(X_scaled)
-            # Используем глобальную статистику (mean=0, std=1) т.к. нет train_stats
-            # Это упрощенная версия - в идеале нужно сохранять train_score_stats при обучении
-            scores_matrix[:, i] = raw_scores
 
-        # Возвращаем индекс класса с максимальным скором
+            if train_score_stats and cls_name in train_score_stats:
+                mean_s, std_s = train_score_stats[cls_name]
+                if std_s > 1e-6:
+                    scores_matrix[:, i] = (raw_scores - mean_s) / std_s
+                else:
+                    scores_matrix[:, i] = raw_scores
+            else:
+                scores_matrix[:, i] = raw_scores
+
         return np.argmax(scores_matrix, axis=1)
