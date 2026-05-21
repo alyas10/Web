@@ -6,20 +6,20 @@
 {% block extra_css %}
 <style>
     :root {
-        /* Цветовая палитра */
-        --bg-primary: #0f172a;
-        --bg-secondary: #1e293b;
-        --bg-tertiary: #334155;
-        --bg-hover: #334155;
-        --text-primary: #f8fafc;
-        --text-secondary: #94a3b8;
-        --text-muted: #64748b;
-        --accent-primary: #3b82f6;
-        --accent-secondary: #6366f1;
+       /* Цветовая палитра — адаптируется под тему */
+        --bg-primary: var(--es-bg-primary);
+        --bg-secondary: var(--es-bg-secondary);
+        --bg-tertiary: var(--es-bg-tertiary);
+        --bg-hover: var(--es-bg-tertiary);
+        --text-primary: var(--es-text-primary);
+        --text-secondary: var(--es-text-secondary);
+        --text-muted: var(--es-text-secondary);
+        --accent-primary: var(--es-accent);
+        --accent-secondary: var(--accent-purple, #7c3aed);
         --accent-hover: #2563eb;
-        --success: #10b981;
-        --warning: #f59e0b;
-        --danger: #ef4444;
+        --success: var(--es-success);
+        --warning: var(--es-warning);
+        --danger: var(--es-danger);
         --info: #06b6d4;
 
         /* Типографика */
@@ -604,10 +604,23 @@
     {# Заголовок модели #}
     <div class="model-detail-header">
         <div class="model-detail-icon" aria-hidden="true">
-            {# Иконка: Chip / CPU для модели #}
+           {% if model.model_type_raw == 'LGBMClassifier' %}
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 012.25 2.25v10.5a2.25 2.25 0 01-2.25 2.25H6.75a2.25 2.25 0 01-2.25-2.25V6.75a2.25 2.25 0 012.25-2.25z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
             </svg>
+            {% elif model.model_type_raw == 'XGBClassifier' %}
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941"/>
+            </svg>
+            {% elif model.model_type_raw == 'RandomForestClassifier' %}
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
+            </svg>
+            {% elif model.model_type_raw == 'IsolationForest' %}
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.249-8.25-3.286zm0 13.036h.008v.008H12v-.008z"/>
+            </svg>
+             {% endif %}
         </div>
         <div>
             <h1 class="model-detail-title">{{ model.name }}</h1>
