@@ -892,6 +892,32 @@ code, pre, .font-mono {
   width: 1rem;
   height: 1rem;
 }
+/* Иконки */
+.page-icon.text-blue,
+.stat-icon.text-blue,
+.stat-icon.text-green,
+.stat-icon.text-orange,
+.stat-icon.text-red,
+.table-icon.text-blue,
+.tooltip-icon,
+.metric-icon svg,
+.page-icon svg,
+.stat-icon svg,
+.table-icon svg,
+.tooltip-icon svg {
+  fill: none;
+  stroke: currentColor;
+  color: var(--text-primary);
+}
+/* Цветные фоны для иконок */
+.bg-blue-light,
+.bg-green-light,
+.bg-orange-light,
+.bg-red-light,
+.bg-purple-light,
+.bg-yellow-light {
+  opacity: 1;
+}
 
 /* В styles.css */
 .openbtn {
