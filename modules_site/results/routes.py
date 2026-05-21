@@ -301,16 +301,16 @@ def _plot_confusion_matrix(y_true, y_pred, classes):
 
     ax.set_xticks(np.arange(len(classes)))
     ax.set_yticks(np.arange(len(classes)))
-    ax.set_xticklabels(classes, rotation=45, ha='right', color='#9ca3af')
-    ax.set_yticklabels(classes, color='#9ca3af')
-    ax.set_xlabel('Predicted label', color='#9ca3af')
-    ax.set_ylabel('True label', color='#9ca3af')
+    ax.set_xticklabels(classes, rotation=45, ha='right', color='white')
+    ax.set_yticklabels(classes, color='white')
+    ax.set_xlabel('Predicted label', color='white')
+    ax.set_ylabel('True label', color='white')
     ax.set_title('Confusion Matrix', color='white', fontsize=12)
 
     # Colorbar
     cbar = ax.figure.colorbar(im, ax=ax)
-    cbar.ax.yaxis.set_tick_params(color='#9ca3af')
-    plt.setp(cbar.ax.yaxis.get_ticklabels(), color='#9ca3af')
+    cbar.ax.yaxis.set_tick_params(color='white')
+    plt.setp(cbar.ax.yaxis.get_ticklabels(), color='white')
 
     plt.tight_layout()
     return _plot_to_base64()
@@ -340,11 +340,11 @@ def _plot_roc_curve(y_true, y_proba, classes, roc_auc_mean):
 
     ax.set_xlim([0.0, 1.0])
     ax.set_ylim([0.0, 1.05])
-    ax.set_xlabel('False Positive Rate', color='#9ca3af')
-    ax.set_ylabel('True Positive Rate', color='#9ca3af')
+    ax.set_xlabel('False Positive Rate', color='white')
+    ax.set_ylabel('True Positive Rate', color='white')
     ax.set_title(f'ROC Curve (Mean AUC = {roc_auc_mean:.3f})', color='white', fontsize=12)
     ax.legend(loc='lower right', facecolor='#1f2937', edgecolor='#374151',
-             labelcolor='#9ca3af', fontsize=8)
+             labelcolor='white', fontsize=8)
     ax.grid(True, alpha=0.2, color='#374151')
 
     plt.tight_layout()
@@ -375,8 +375,8 @@ def _plot_feature_importance():
         bars = ax.barh(range(len(top_features)), top_importance, color='#3B82F6')
 
         ax.set_yticks(range(len(top_features)))
-        ax.set_yticklabels(top_features, fontsize=8, color='#9ca3af')
-        ax.set_xlabel('Feature Importance (Gain)', color='#9ca3af')
+        ax.set_yticklabels(top_features, fontsize=8, color='white')
+        ax.set_xlabel('Feature Importance (Gain)', color='white')
         ax.set_title('Top 15 Feature Importance', color='white', fontsize=12)
         ax.invert_yaxis()
         ax.grid(True, alpha=0.2, axis='x', color='#374151')
