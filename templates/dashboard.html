@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 
 {% block title %}Dashboard - ML Network Security{% endblock %}
-
+{% block extra_css %}
+<!-- Chart.js для интерактивных графиков -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
 {% block content %}
 <div class="page-container">
     <div class="page-header">
@@ -17,6 +20,111 @@
             </div>
         </div>
     </div>
+
+    <!-- ═══ INTERACTIVE DASHBOARDS ═══ -->
+    <div id="interactiveDashboards" style="margin-bottom:1.5rem;">
+
+        <!-- Шапка секции + демо-баннер -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+            <div>
+                <h3 class="card-title" style="margin:0;">Интерактивный анализ</h3>
+                <p style="font-size:0.8125rem;color:var(--es-text-secondary);margin-top:0.2rem;">
+                    Данные обновляются после каждого запуска анализа
+                </p>
+            </div>
+            <div id="demoBadge" style="display:none;padding:0.25rem 0.75rem;border-radius:9999px;
+                 background:rgba(234,179,8,0.12);color:#b45309;font-size:0.75rem;font-weight:600;">
+                Демо-данные
+            </div>
+        </div>
+
+        <!-- Мини-сводка (4 плашки) -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1rem;"
+             id="dashSummaryGrid">
+            <div class="stat-card" style="padding:1rem;">
+                <p style="font-size:0.75rem;color:var(--es-text-secondary);margin-bottom:0.25rem;">
+                    Всего событий</p>
+                <p style="font-size:1.5rem;font-weight:700;color:var(--es-text-primary);"
+                   id="ds-total">—</p>
+            </div>
+            <div class="stat-card" style="padding:1rem;">
+                <p style="font-size:0.75rem;color:var(--es-text-secondary);margin-bottom:0.25rem;">
+                    Угроз обнаружено</p>
+                <p style="font-size:1.5rem;font-weight:700;color:var(--es-danger,#dc2626);"
+                   id="ds-threats">—</p>
+            </div>
+            <div class="stat-card" style="padding:1rem;">
+                <p style="font-size:0.75rem;color:var(--es-text-secondary);margin-bottom:0.25rem;">
+                    Безопасный трафик</p>
+                <p style="font-size:1.5rem;font-weight:700;color:var(--es-success,#059669);"
+                   id="ds-safe">—</p>
+            </div>
+            <div class="stat-card" style="padding:1rem;">
+                <p style="font-size:0.75rem;color:var(--es-text-secondary);margin-bottom:0.25rem;">
+                    Модель</p>
+                <p style="font-size:0.9rem;font-weight:600;color:var(--es-text-primary);
+                   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
+                   id="ds-model">—</p>
+            </div>
+        </div>
+
+        <!-- Строка: donut + bar моделей -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+
+            <!-- Donut: распределение классов -->
+            <div class="card" style="padding:0;overflow:hidden;">
+                <div class="card-header">
+                    <h3 class="card-title">Распределение классов трафика</h3>
+                    <p class="card-subtitle" id="donutSubtitle">По результатам последнего анализа</p>
+                </div>
+                <div style="padding:1rem;display:flex;align-items:center;gap:1rem;">
+                    <canvas id="chartDonut" width="200" height="200"
+                            style="flex:0 0 200px;max-width:200px;"></canvas>
+                    <div id="donutLegend"
+                         style="flex:1;display:flex;flex-direction:column;gap:0.4rem;
+                                max-height:200px;overflow-y:auto;"></div>
+                </div>
+            </div>
+
+            <!-- Bar: accuracy/F1 по моделям -->
+            <div class="card" style="padding:0;overflow:hidden;">
+                <div class="card-header">
+                    <h3 class="card-title">Качество моделей</h3>
+                    <p class="card-subtitle">Accuracy и F1-score из сохранённых метрик</p>
+                </div>
+                <div style="padding:1rem;">
+                    <canvas id="chartModels" height="160"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Строка: история угроз + топ угроз -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+
+            <!-- Line: история запусков -->
+            <div class="card" style="padding:0;overflow:hidden;">
+                <div class="card-header">
+                    <h3 class="card-title">История анализов</h3>
+                    <p class="card-subtitle">Количество угроз по времени</p>
+                </div>
+                <div style="padding:1rem;">
+                    <canvas id="chartHistory" height="140"></canvas>
+                </div>
+            </div>
+
+            <!-- Horizontal bar: топ-классов угроз -->
+            <div class="card" style="padding:0;overflow:hidden;">
+                <div class="card-header">
+                    <h3 class="card-title">Топ классов угроз</h3>
+                    <p class="card-subtitle">По количеству обнаружений (без Benign)</p>
+                </div>
+                <div style="padding:1rem;">
+                    <canvas id="chartTopThreats" height="140"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ═══ END INTERACTIVE DASHBOARDS ═══ -->
 
     <div class="page-content">
         <!-- Stats Grid -->
@@ -140,4 +248,6 @@
         </div>
     </div>
 </div>
+<!-- Подключение скрипта интерактивных дашбордов -->
+<script src="{{ url_for('static', filename='js/dashboard_charts.js') }}"></script>
 {% endblock %}
