@@ -1,4 +1,6 @@
 # modules_site/models/routes.py
+from pathlib import Path
+
 from flask import render_template, request, jsonify, current_app, session
 from . import bp  # Импорт один раз в начале
 import pandas as pd
@@ -57,6 +59,14 @@ GRAPHVIZ_PATHS = [
     '/usr/local/bin',
     '/usr/bin'
 ]
+
+TEST_DATA_MAP = {
+    'isolation_forest': 'test/processed/test_data/isolation_forest_test_10k.csv',
+    'lightgbm':         'test/processed/test_data/isolation_forest_test_10k.csv',
+    'xgboost':          'test/processed/test_data/isolation_forest_test_10k.csv',
+    'random_forest':    'test/processed/test_data/isolation_forest_test_10k.csv',
+}
+
 
 for path in GRAPHVIZ_PATHS:
     if os.path.exists(path) and path not in os.environ.get('PATH', ''):
@@ -652,6 +662,13 @@ def _is_categorical_feature(col_name: str) -> bool:
             return True
     return False
 
+def _make_dummy_df(feature_names):
+    """Fallback: одна случайная строка если тестового файла нет."""
+    row = {}
+    for col in feature_names:
+        row[col] = [np.random.choice([0, 1]) if _is_categorical_feature(col)
+                    else np.random.normal(0, 1)]
+    return pd.DataFrame(row)
 
 @bp.route('/predict', methods=['POST'])
 def predict():
@@ -682,19 +699,24 @@ def predict():
         if feature_names is None:
             feature_names = _extract_features_from_bundle(bundle)
 
-        # Создаём тестовые данные с правильными признаками
-        dummy_data = {}
-        for col in feature_names:
-            if _is_categorical_feature(col):
-                # Категориальный признак (one-hot encoded)
-                dummy_data[col] = [np.random.choice([0, 1])]
+
+        # Загружаем реальный тестовый файл
+        test_file_rel = TEST_DATA_MAP.get(selected_model_id)
+        if test_file_rel:
+            test_file_path = Path(current_app.root_path) / test_file_rel
+            if test_file_path.exists():
+                input_df = pd.read_csv(test_file_path)
+                # Если в файле есть колонка метки — убираем её перед предсказанием
+                for label_col in ('Label', 'label', 'Class', 'class', 'Attack', 'attack'):
+                    if label_col in input_df.columns:
+                        input_df = input_df.drop(columns=[label_col])
             else:
-                # Числовой признак
-                dummy_data[col] = [np.random.normal(0, 1)]
+                current_app.logger.warning(f"Test file not found: {test_file_path}, using dummy")
+                input_df = _make_dummy_df(feature_names)
+        else:
+            input_df = _make_dummy_df(feature_names)
 
-        dummy_df = pd.DataFrame(dummy_data)
-
-        predictions = model_manager.predict(selected_model_id, dummy_df, env)
+        predictions = model_manager.predict(selected_model_id, input_df, env)
         predicted_class = predictions[0] if predictions else "Unknown"
         threats_count = sum(1 for p in predictions if p != 'Benign')
 
