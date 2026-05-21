@@ -163,17 +163,17 @@ document.getElementById('saveSettingsBtn').addEventListener('click', function() 
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            showToast('✅ ' + data.message, 'success');
+            showToast(data.message, 'success');
             // Обновляем значение Test (%) при изменении Train (%)
             updateTestSplit();
 
         } else {
-            showToast('❌ Ошибка: ' + data.message, 'error');
+            showToast('Ошибка: ' + data.message, 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('❌ Произошла ошибка при сохранении.', 'error');
+        showToast('Произошла ошибка при сохранении.', 'error');
     })
     .finally(() => {
         btn.disabled = false;
@@ -197,18 +197,18 @@ document.getElementById('resetSettingsBtn').addEventListener('click', function()
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            showToast('✅ ' + data.message, 'success');
+            showToast(data.message, 'success');
             // Перезагружаем страницу через небольшую задержку
             setTimeout(() => location.reload(), 1000);
         } else {
-            showToast('❌ Ошибка: ' + data.message, 'error');
+            showToast('Ошибка: ' + data.message, 'error');
             btn.disabled = false;
             btn.innerHTML = originalText;
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('❌ Произошла ошибка при сбросе.', 'error');
+        showToast('Произошла ошибка при сбросе.', 'error');
         btn.disabled = false;
         btn.innerHTML = originalText;
     });
