@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 // Успешный результат - показываем красивое уведомление
-                showToast(`✅ Анализ завершен! Обработано строк: ${data.count}. Переход на Dashboard...`, "success");
+                showToast(`Анализ завершен! Обработано строк: ${data.count}. Переход на Dashboard...`, "success");
 
                 // Перенаправление на страницу Dashboard через небольшую паузу
                 setTimeout(() => {
@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             } catch (error) {
                 console.error('Analysis Error:', error);
-                showToast("❌ Ошибка при запуске анализа: " + error.message, "error");
+                showToast("Ошибка при запуске анализа: " + error.message, "error");
             } finally {
                 toggleLoadingState(runAnalysisBtn, false);
             }
@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.setAttribute('aria-hidden', 'false');
 
         // Сброс состояния UI
-        if (vizElements.title) vizElements.title.textContent = '📊 Визуализация: ' + modelName;
+        if (vizElements.title) vizElements.title.textContent = 'Визуализация: ' + modelName;
         updateVizState('loading');
 
         // Запрос к API визуализации
@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (vizElements.content) vizElements.content.style.display = state === 'content' ? 'block' : 'none';
         if (vizElements.error) {
             vizElements.error.style.display = state === 'error' ? 'block' : 'none';
-            if (errorMessage) vizElements.error.textContent = '⚠️ ' + errorMessage;
+            if (errorMessage) vizElements.error.textContent = errorMessage;
         }
     }
 
