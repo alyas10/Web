@@ -48,15 +48,17 @@ def dashboard():
     analysis_results = session.get('analysis_results')
     analysis_loaded = bool(analysis_results)
     if analysis_loaded:
+        threat_types = analysis_results.get("threat_types",
+                                            len(analysis_results.get("threat_distribution", [])))
         stats = [
-            {'label': 'Файл', 'value': analysis_results["filename"], 'change': '', 'trend': 'up', 'icon': 'activity',
-             'color': 'blue'},
-            {'label': 'Строк (событий)', 'value': str(analysis_results["rows"]), 'change': '', 'trend': 'up',
-             'icon': 'activity', 'color': 'purple'},
-            {'label': 'Обнаружено угроз', 'value': str(analysis_results["threats"]), 'change': '', 'trend': 'up',
-             'icon': 'alert', 'color': 'red'},
-            {'label': 'Модель', 'value': analysis_results["model_used"], 'change': '', 'trend': 'up',
-             'icon': 'trending', 'color': 'green'},
+            {'label': 'Строк (событий)', 'value': str(analysis_results["rows"]),
+             'change': '', 'trend': 'up', 'icon': 'activity', 'color': 'blue'},
+            {'label': 'Событий угрозы', 'value': str(analysis_results["threats"]),
+             'change': '', 'trend': 'up', 'icon': 'alert', 'color': 'red'},
+            {'label': 'Типов угроз', 'value': str(threat_types),
+             'change': '', 'trend': 'up', 'icon': 'check', 'color': 'orange'},
+            {'label': 'Модель', 'value': analysis_results["model_used"],
+             'change': '', 'trend': 'up', 'icon': 'trending', 'color': 'green'},
         ]
         recent_analyses = session.get("recent_analyses", [])  # компактная история
         threat_distribution = analysis_results.get("threat_distribution", [])
@@ -101,20 +103,19 @@ def api_dashboard_data():
         # Реальные данные из последнего анализа
         total_events = analysis_results.get('rows', 0)
         threats = analysis_results.get('threats', 0)
-        safe_traffic = total_events - threats
+        class_counts = analysis_results.get('class_counts', {})
+        # Берем Benign из class_counts если доступно, иначе вычисляем
+        benign_count = class_counts.get('Benign', class_counts.get('benign', 0))
+        safe_traffic = benign_count if benign_count > 0 else max(0, total_events - threats)
 
         # Распределение классов (если есть в результатах)
-        class_dist = analysis_results.get('threat_distribution', [])
-        class_distribution = {}
-        for item in class_dist:
-            class_distribution[item.get('type', 'Unknown')] = item.get('count', 0)
-
-        # Если нет распределения, создаем заглушку
-        if not class_distribution:
-            class_distribution = {
-                'Benign': safe_traffic,
-                'Threats': threats
-            }
+        if class_counts:
+            class_distribution = dict(class_counts)
+        else:
+            class_dist = analysis_results.get('threat_distribution', [])
+            class_distribution = {'Benign': safe_traffic}
+            for item in class_dist:
+                class_distribution[item.get('type', 'Unknown')] = item.get('count', 0)
 
         # История анализов из session
         recent_analyses = session.get('recent_analyses', [])
