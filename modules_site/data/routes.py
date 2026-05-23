@@ -384,7 +384,8 @@ def start_analysis():
             label for label in counts.keys()
             if label.lower() != "benign"
         ]
-        threats = len(unique_threat_types)
+        threats = sum(counts[label] for label in unique_threat_types)
+        threat_types_count = len(unique_threat_types)
 
         distribution = []
         for label, cnt in counts.most_common():
@@ -406,6 +407,7 @@ def start_analysis():
             "model_used": f"{algo}/{env}",
             "rows": total,
             "threats": threats,
+            "threat_types": threat_types_count,
             "class_counts": dict(counts),
             "threat_distribution": distribution,
             "predictions_sample": predictions[:200],
