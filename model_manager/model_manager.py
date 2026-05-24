@@ -8,7 +8,7 @@ from typing import Any, List, Optional, Union
 
 import joblib
 import numpy as np
-
+import re
 
 try:
     import pandas as pd
@@ -38,8 +38,8 @@ class ModelManager:
 
         self.file_map = {
             "lightgbm": {
-                "pipeline": "full_pipeline.pkl",
-                "label_encoder": "label_encoder_full_dataset.pkl",
+                "pipeline": "lgbm_optuna_best.joblib",
+                "label_encoder": "label_encoder.joblib",
             },
             "xgboost": {
                 "pipeline": "xgb_optuna_best.joblib",
@@ -168,6 +168,10 @@ class ModelManager:
 
         result = data.copy()
 
+        # Очищаем имена колонок так же, как при обучении LightGBM
+        if algo == "lightgbm":
+            result.columns = [re.sub(r'[^A-Za-z0-9_]', '_', col) for col in result.columns]
+
         # Добавляем отсутствующие признаки
         missing = [f for f in expected_features if f not in result.columns]
         for col in missing:
@@ -184,7 +188,7 @@ class ModelManager:
         # 1. Конвертация object → category для tree-based моделей
         # Данные при обучении были предварительно закодированы в числа;
         # принудительно конвертируем строковые/категориальные колонки в float
-        if algo in ("xgboost", "random_forest", "isolation_forest"):
+        if algo in ("lightgbm","xgboost", "random_forest", "isolation_forest"):
             for col in result.columns:
                 if result[col].dtype == object or hasattr(result[col].dtype, 'categories'):
                     result[col] = pd.to_numeric(result[col], errors='coerce').fillna(0)
