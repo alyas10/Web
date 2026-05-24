@@ -1,3 +1,12 @@
 {
-    "accuracy": 0.83
+  "accuracy": 0.9801,
+  "f1_macro": 0.9755,
+  "f1_weighted": 0.9803,
+  "roc_auc_macro": 0.9997,
+  "roc_auc_micro": 0.9999,
+  "precision_macro": 0.9738,
+  "recall_macro": 0.9792,
+  "train_accuracy": 0.9811,
+  "val_accuracy": 0.9801,
+  "test_accuracy": 0.9803
 }
