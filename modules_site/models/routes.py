@@ -434,7 +434,7 @@ def _get_model_viz(model_id: str) -> Dict[str, Any]:
         try:
             if hasattr(classifier, 'booster_'):  # LightGBM
                 import lightgbm as lgb
-                if getattr(classifier, 'num_leaves', 255) <= 31:
+                if getattr(classifier, 'num_leaves', 255):
                     plt.figure(figsize=(20, 12), facecolor='#1f2937')
                     lgb.plot_tree(classifier.booster_, tree_index=0, figsize=(12, 8))
                     plt.title('Дерево решений №1', color='white', fontsize=12)
