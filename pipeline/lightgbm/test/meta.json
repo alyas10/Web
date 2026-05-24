@@ -1,0 +1,41 @@
+{
+  "model_type": "LightGBM",
+  "metric_optimized": "multi_logloss",
+  "best_optuna_value": 0.04924602962855933,
+  "best_params": {
+    "n_estimators": 261,
+    "learning_rate": 0.07821062215903053,
+    "num_leaves": 82,
+    "max_depth": 10,
+    "min_child_samples": 41,
+    "subsample": 0.8919423569452742,
+    "colsample_bytree": 0.8291875086333805,
+    "reg_alpha": 0.00526826260709401,
+    "reg_lambda": 1.877119579873326,
+    "min_split_gain": 0.15136263808383352
+  },
+  "n_trials": 20,
+  "val_accuracy": 0.9801,
+  "test_accuracy": 0.9803,
+  "val_macro_f1": 0.9755,
+  "val_macro_auc": 0.9997,
+  "n_classes": 14,
+  "class_names": [
+    "ARP-spoof",
+    "Benign",
+    "DDoS",
+    "DoS",
+    "FTP-Attack",
+    "FTP-Brute-Force",
+    "Fuzzing",
+    "ICMP-Flood",
+    "Port-Scanning",
+    "RCE",
+    "SQL-Injection",
+    "SSH-Brute-Force",
+    "SYN-Flood",
+    "XSS"
+  ],
+  "features_count": 55,
+  "best_iteration": 260
+}
