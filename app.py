@@ -1,3 +1,5 @@
+import sys
+
 from flask import Flask
 import os
 import json
@@ -12,6 +14,14 @@ from modules_site.dataset_analys import bp as dataset_analys_bp
 from model_manager.model_utils import NumericFeatureSelector
 from modules_site.settings.routes import load_config
 
+def get_resource_path(relative_path):
+    """Получить абсолютный путь к ресурсу"""
+    try:
+        # PyInstaller создает временную папку _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_path, relative_path)
 
 def create_app():
 
@@ -46,9 +56,15 @@ def create_app():
     # Загрузка feature_info и инициализация shared_objects
     import joblib
     try:
-        pipe = joblib.load("pipeline/lightgbm/test/full_pipeline.pkl")
-        feature_info = joblib.load('pipeline/lightgbm/test/feature_info.pkl')
-        print(f"Загружено {len(feature_info['numeric_features']) + len(feature_info['categorical_features'])} признаков.")
+        pipe = joblib.load("pipeline/lightgbm/test/lgbm_optuna_best.joblib")
+        features_path = "pipeline/lightgbm/test/feature_names.txt"
+        with open(features_path, 'r', encoding='utf-8') as f:
+            all_features = [line.strip() for line in f if line.strip()]
+        feature_info = {
+            'numeric_features': all_features,
+            'categorical_features': []
+        }
+        print(f"Загружено {len(all_features)} признаков из feature_names.txt.")
     except Exception as e:
         print(f"Ошибка загрузки модели/признаков: {e}")
         feature_info = {'numeric_features': [], 'categorical_features': []}
