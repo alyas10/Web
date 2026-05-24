@@ -488,3 +488,94 @@ window.handleDownload = function() {
 // 4. Глобальная функция сброса (для отладки)
 window.resetZoom = resetAllZoom;
 });
+
+(function () {
+    const STEP_DURATION = 2200;   // мс на каждый шаг
+    const PROGRESS_MS   = STEP_DURATION - 150;
+
+    const steps  = Array.from(document.querySelectorAll('.wf-step'));
+    const arrows = Array.from(document.querySelectorAll('.wf-arrow'));
+    const dots   = Array.from(document.querySelectorAll('.wf-dot'));
+
+    if (!steps.length) return;
+
+    let current   = 0;
+    let timer     = null;
+    let paused    = false;
+
+    function activate(idx) {
+        steps.forEach((s, i) => {
+            s.classList.remove('active', 'done');
+            const bar = s.querySelector('.wf-progress-bar');
+            if (bar) {
+                bar.style.transition = 'none';
+                bar.style.width = '0%';
+            }
+
+            if (i < idx)       s.classList.add('done');
+            else if (i === idx) s.classList.add('active');
+        });
+
+        arrows.forEach((a, i) => {
+            a.classList.toggle('lit', i < idx);
+        });
+
+        dots.forEach((d, i) => {
+            d.classList.toggle('active', i === idx);
+        });
+
+        // Запускаем прогресс-бар активного шага
+        const bar = steps[idx].querySelector('.wf-progress-bar');
+        if (bar) {
+            requestAnimationFrame(() => {
+                bar.style.transition = `width ${PROGRESS_MS}ms linear`;
+                bar.style.width = '100%';
+            });
+        }
+
+        current = idx;
+    }
+
+    function next() {
+        if (paused) return;
+        const nextIdx = (current + 1) % steps.length;
+        activate(nextIdx);
+    }
+
+    function startTimer() {
+        if (timer) clearInterval(timer);
+        timer = setInterval(next, STEP_DURATION);
+    }
+
+    // Клик по карточке — переход на шаг
+    steps.forEach((s, i) => {
+        s.addEventListener('click', () => {
+            paused = false;
+            activate(i);
+            startTimer();
+        });
+    });
+
+    // Клик по точке
+    dots.forEach((d, i) => {
+        d.addEventListener('click', () => {
+            paused = false;
+            activate(i);
+            startTimer();
+        });
+    });
+
+    // Пауза при наведении мыши
+    const section = document.querySelector('.workflow-section');
+    if (section) {
+        section.addEventListener('mouseenter', () => { paused = true; });
+        section.addEventListener('mouseleave', () => {
+            paused = false;
+            startTimer();
+        });
+    }
+
+    // Старт
+    activate(0);
+    startTimer();
+})();
