@@ -155,10 +155,14 @@ def _generate_confusion_matrix(pipeline, bundle, class_names):
                yticks=np.arange(n_classes),
                xticklabels=class_names, yticklabels=class_names,
                xlabel='Predicted label',
-               ylabel='True label')
+               ylabel='True label',
+               )
 
-        plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
-        plt.setp(ax.get_yticklabels(), rotation=0)
+        ax.xaxis.label.set_color('white')
+        ax.yaxis.label.set_color('white')
+        ax.tick_params(colors='white')
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor",color='white')
+        plt.setp(ax.get_yticklabels(), rotation=0,color='white')
 
         # Добавляем значения в ячейки
         fmt = 'd'
