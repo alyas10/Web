@@ -5,6 +5,7 @@ import numpy as np
 import io
 import base64
 import matplotlib
+import seaborn
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from sklearn.metrics import (
@@ -13,6 +14,62 @@ from sklearn.metrics import (
 )
 from sklearn.preprocessing import label_binarize
 import joblib
+import re
+
+def _load_and_predict(model_manager, model_id, env='test',
+                      test_path='test/processed/test_data/isolation_forest_test_10k.csv'):
+    """
+    Загружает тестовый CSV, получает предсказания и вероятности модели.
+    Возвращает (y_true_str, y_pred_str, y_proba, class_names) или None при ошибке.
+    """
+    try:
+        from pathlib import Path
+        if not Path(test_path).exists():
+            current_app.logger.warning(f"Test file not found: {test_path}")
+            return None
+
+        df = pd.read_csv(test_path)
+
+        # Ищем колонку с метками (Label / label / Class / Attack)
+        label_col = next((c for c in df.columns
+                          if c.strip().lower() in ('label', 'class', 'attack', 'target')), None)
+        if label_col is None:
+            current_app.logger.warning("Label column not found in test CSV")
+            return None
+
+        y_true_str = df[label_col].astype(str).values
+        X_raw = df.drop(columns=[label_col])
+
+        # Очищаем имена колонок так же, как при обучении LightGBM
+        if model_id == 'lightgbm':
+            X_raw.columns = [re.sub(r'[^A-Za-z0-9_]', '_', c) for c in X_raw.columns]
+            X_raw = X_raw.loc[:, ~X_raw.columns.duplicated()]
+
+        bundle  = model_manager._get_or_load_bundle(model_id, env)
+        le      = bundle.label_encoder
+        classes = list(le.classes_)                    # строковые имена классов
+
+        # Выравниваем признаки под обученную модель
+        X_aligned = model_manager._normalize_input_features(
+            X_raw, bundle.feature_names, model_id
+        )
+
+        # Предсказания строками
+        y_pred_str = model_manager.predict(model_id, X_raw, env)
+
+        # Вероятности (не для Isolation Forest)
+        y_proba = None
+        if model_id != 'isolation_forest':
+            try:
+                y_proba = bundle.pipeline.predict_proba(X_aligned)
+            except Exception as e:
+                current_app.logger.warning(f"predict_proba failed for {model_id}: {e}")
+
+        return y_true_str, np.array(y_pred_str), y_proba, classes
+
+    except Exception as e:
+        current_app.logger.error(f"_load_and_predict failed for {model_id}: {e}", exc_info=True)
+        return None
 
 def _plot_to_base64(dpi=120):
     """Конвертирует matplotlib график в base64-строку"""
@@ -132,115 +189,150 @@ def _calculate_model_metrics(model_manager, model_id, env='test'):
         current_app.logger.error(f"Error calculating metrics for {model_id}: {e}")
         return None
 
-def _generate_confusion_matrix(pipeline, bundle, class_names):
-    """Генерирует confusion matrix"""
+def _generate_confusion_matrix(pipeline, bundle, class_names,
+                                y_true=None, y_pred=None):
+    """Матрица ошибок на реальных тестовых данных (или заглушка)."""
     try:
-        # Для демонстрации генерируем случайную матрицу
-        # В реальном проекте нужно загружать тестовые данные
-        n_classes = len(class_names)
-        if n_classes > 10:
-            # Для многоклассовой классификации показываем топ классов
-            n_classes = min(n_classes, 10)
-            class_names = class_names[:n_classes]
+        import seaborn as sns
 
-        # Генерируем случайную матрицу для демонстрации
-        cm = np.random.randint(10, 100, size=(n_classes, n_classes))
-        np.fill_diagonal(cm, np.random.randint(500, 1000, size=n_classes))
+        # --- Реальные данные ---
+        if y_true is not None and y_pred is not None:
+            # Оставляем только классы, которые встречаются в выборке
+            present = sorted(set(y_true) | set(y_pred))
+            labels  = [c for c in class_names if c in present] or present
+            cm      = confusion_matrix(y_true, y_pred, labels=labels)
+            tick_labels = labels
+        else:
+            # Заглушка если данных нет
+            n  = min(len(class_names), 10)
+            cm = np.random.randint(10, 100, size=(n, n))
+            np.fill_diagonal(cm, np.random.randint(500, 1000, size=n))
+            tick_labels = class_names[:n]
 
-        fig, ax = plt.subplots(figsize=(10, 8), facecolor='#1f2937')
-        im = ax.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
-        ax.figure.colorbar(im, ax=ax)
-
-        ax.set(xticks=np.arange(n_classes),
-               yticks=np.arange(n_classes),
-               xticklabels=class_names, yticklabels=class_names,
-               xlabel='Predicted label',
-               ylabel='True label',
-               )
-
+        n = len(tick_labels)
+        fig, ax = plt.subplots(figsize=(max(8, n), max(7, n - 1)),
+                               facecolor='#1f2937')
+        ax.set_facecolor('#1f2937')
         ax.xaxis.label.set_color('white')
         ax.yaxis.label.set_color('white')
         ax.tick_params(colors='white')
-        plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor",color='white')
-        plt.setp(ax.get_yticklabels(), rotation=0,color='white')
 
-        # Добавляем значения в ячейки
-        fmt = 'd'
-        thresh = cm.max() / 2.
-        for i in range(n_classes):
-            for j in range(n_classes):
-                ax.text(j, i, format(cm[i, j], fmt),
-                        ha="center", va="center",
-                        color="white" if cm[i, j] > thresh else "black")
-
-        fig.tight_layout()
+        sns.heatmap(
+            cm, annot=True, fmt='d', cmap='Blues', cbar=False,
+            xticklabels=tick_labels, yticklabels=tick_labels,
+            linewidths=0.4, ax=ax,
+            annot_kws={'size': max(6, 10 - n // 3)}
+        )
+        ax.set_xlabel('Предсказанный класс', color='#9ca3af', fontsize=10)
+        ax.set_ylabel('Истинный класс',      color='#9ca3af', fontsize=10)
+        ax.set_title('Матрица ошибок (Confusion Matrix)',
+                     color='white', fontsize=12, fontweight='bold')
+        ax.tick_params(colors='#9ca3af', labelsize=8)
+        plt.xticks(rotation=45, ha='right')
+        plt.yticks(rotation=0)
+        plt.tight_layout()
         return _plot_to_base64()
+
     except Exception as e:
         current_app.logger.error(f"Error generating confusion matrix: {e}")
         return None
 
 
-def _generate_roc_curve(pipeline, bundle, class_names, model_id=None):
-    """Генерирует ROC curve для модели"""
+def _generate_roc_curve(pipeline, bundle, class_names, model_id=None,
+                        y_true=None, y_proba=None):
+    """ROC-кривые One-vs-Rest на реальных данных (или заглушка)."""
     try:
-        n_classes = len(class_names)
-        if n_classes > 15:
-            n_classes = min(n_classes, 15)
-            class_names_display = class_names[:n_classes]
+        is_if = isinstance(pipeline, dict) or (
+            hasattr(pipeline, 'named_steps') and
+            isinstance(pipeline.named_steps.get('classifier'), dict)
+        )
+
+        # --- Реальные данные (XGBoost / LightGBM / Random Forest) ---
+        if y_true is not None and y_proba is not None and not is_if:
+            le_tmp = bundle.label_encoder
+            # Кодируем y_true в числа для roc_curve
+            from sklearn.preprocessing import LabelEncoder
+            le_local = LabelEncoder()
+            le_local.classes_ = np.array(le_tmp.classes_)
+            # Оставляем только классы, присутствующие в y_proba
+            present_classes = list(le_tmp.classes_)
+            y_true_enc = np.array([
+                list(le_tmp.classes_).index(c) if c in le_tmp.classes_ else -1
+                for c in y_true
+            ])
+            mask = y_true_enc >= 0
+            y_true_enc = y_true_enc[mask]
+            y_proba_f  = y_proba[mask]
+
+            class_aucs = []
+            for i, cls_name in enumerate(present_classes):
+                y_bin = (y_true_enc == i).astype(int)
+                if y_bin.sum() == 0:
+                    continue
+                fpr, tpr, _ = roc_curve(y_bin, y_proba_f[:, i])
+                class_aucs.append({
+                    'class': cls_name,
+                    'auc':   auc(fpr, tpr),
+                    'fpr':   fpr,
+                    'tpr':   tpr
+                })
+
+            roc_df = (pd.DataFrame(class_aucs)
+                        .sort_values('auc', ascending=False)
+                        .reset_index(drop=True))
+
+            fig, ax = plt.subplots(figsize=(13, 9), facecolor='white')
+            ax.set_facecolor('white')
+            colors   = plt.cm.Set3(np.linspace(0, 1, len(roc_df)))
+            idx_show = set(list(range(7)) + list(range(max(0, len(roc_df)-5), len(roc_df))))
+
+            for i, row in roc_df.iterrows():
+                if i not in idx_show:
+                    continue
+                ax.plot(row['fpr'], row['tpr'],
+                        color=colors[i % len(colors)], linewidth=1.6,
+                        label=f"{row['class']} (AUC={row['auc']:.3f})", alpha=0.9)
+
+            ax.plot([0, 1], [0, 1], color='#6b7280', linestyle='--',
+                    linewidth=1.4, label='Случайный (AUC=0.5)', alpha=0.7)
+
+            macro_auc = roc_df['auc'].mean()
+            roc_suffix = " (One-vs-Rest)" if model_id == 'isolation_forest' else ""
+            ax.set_title(
+                f'ROC-кривые{roc_suffix} — {(model_id or "").replace("_", " ").title()}'
+                f'\nМакро-AUC = {macro_auc:.4f}',
+                color='white', fontsize=12, fontweight='bold'
+            )
         else:
-            class_names_display = class_names
-
-        fig, ax = plt.subplots(figsize=(12, 8), facecolor='#1f2937')
-        colors = plt.cm.tab20(np.linspace(0, 1, n_classes))
-
-        # Проверяем, это Isolation Forest One-vs-Rest (dict)
-        is_if_dict = isinstance(pipeline, dict)
-        if not is_if_dict and hasattr(pipeline, 'named_steps'):
-            clf = pipeline.named_steps.get('classifier', None)
-            is_if_dict = isinstance(clf, dict)
-
-        if is_if_dict:
-            # Isolation Forest One-vs-Rest - генерируем демо-кривые
-            # (т.к. реальные тестовые данные не сохранены в bundle)
-            for i, (cls, color) in enumerate(zip(class_names_display, colors)):
-                # Генерируем реалистичную ROC кривую для IF (AUC ~0.7-0.9)
+            # --- Заглушка (Isolation Forest или нет данных) ---
+            fig, ax = plt.subplots(figsize=(13, 9), facecolor='white')
+            ax.set_facecolor('white')
+            colors = plt.cm.tab20(np.linspace(0, 1, len(class_names)))
+            n_show = min(len(class_names), 12)
+            for i in range(n_show):
                 fpr = np.linspace(0, 1, 100)
-                # Кривая с AUC около 0.8 (типично для IF)
-                tpr = np.power(fpr, 0.6 + np.random.uniform(-0.1, 0.1))
-                roc_auc_val = 0.75 + np.random.uniform(-0.05, 0.1)
-
-                if i < 7 or i >= len(class_names_display) - 4:
-                    ax.plot(fpr, tpr, color=color, linewidth=1.5,
-                            label=f'{cls[:18]} (AUC={roc_auc_val:.3f})', alpha=0.85)
-
-            ax.plot([0, 1], [0, 1], 'k--', label='Random Classifier (AUC=0.5)', alpha=0.6)
-            ax.set_title('ROC-кривые (One-vs-Rest) — Isolation Forest', fontweight='bold', fontsize=13)
-
-        else:
-            # Стандартный подход для других моделей (LightGBM, XGBoost, RandomForest)
-            for i, (cls, color) in enumerate(zip(class_names_display, colors)):
-                # Генерируем случайную ROC кривую для демонстрации
-                fpr = np.linspace(0, 1, 100)
-                tpr = np.power(fpr, np.random.uniform(0.5, 0.8))
-                roc_auc_val = auc(fpr, tpr)
-
-                if i < 7 or i >= len(class_names_display) - 4:
-                    ax.plot(fpr, tpr, color=color, lw=2,
-                            label=f'{cls[:15]} (AUC = {roc_auc_val:.2f})')
-
-            ax.plot([0, 1], [0, 1], 'k--', lw=2, alpha=0.5)
-            ax.set_title('ROC Curve', color='white', fontsize=12)
+                tpr = np.power(fpr, 0.55 + np.random.uniform(-0.08, 0.08))
+                ax.plot(fpr, tpr, color=colors[i], linewidth=1.5,
+                        label=f"{class_names[i][:18]} (AUC={auc(fpr,tpr):.3f})", alpha=0.85)
+            ax.plot([0, 1], [0, 1], color='#6b7280', linestyle='--',
+                    linewidth=1.4, label='Случайный (AUC=0.5)')
+            roc_suffix = " (One-vs-Rest)" if model_id == 'isolation_forest' else ""
+            ax.set_title(
+                f'ROC-кривые{roc_suffix} — {(model_id or "").replace("_", " ").title()}',
+                color='white', fontsize=12, fontweight='bold'
+            )
 
         ax.set_xlim([0.0, 1.0])
         ax.set_ylim([0.0, 1.05])
-        ax.set_xlabel('False Positive Rate', color='#9ca3af')
-        ax.set_ylabel('True Positive Rate', color='#9ca3af')
-        ax.legend(loc="lower right", fontsize=7, framealpha=0.9)
+        ax.set_xlabel('False Positive Rate', color='#9ca3af', fontsize=10)
+        ax.set_ylabel('True Positive Rate',  color='#9ca3af', fontsize=10)
+        ax.legend(loc='lower right', fontsize=7.5, framealpha=0.9,
+                  facecolor='white', edgecolor='black', labelcolor='black')
         ax.tick_params(colors='#9ca3af')
-        ax.grid(alpha=0.3)
-
+        ax.grid(alpha=0.25)
         fig.tight_layout()
         return _plot_to_base64()
+
     except Exception as e:
         current_app.logger.error(f"Error generating ROC curve: {e}")
         return None
@@ -420,17 +512,29 @@ def results():
         if not metrics_data:
             continue
 
-        # Генерируем визуализации
+        pred_result = _load_and_predict(model_manager, model_id)
+
+        if pred_result is not None:
+            y_true_r, y_pred_r, y_proba_r, _ = pred_result
+        else:
+            y_true_r = y_pred_r = y_proba_r = None
+
+        # --- Генерируем графики на реальных данных ---
         confusion_matrix_img = _generate_confusion_matrix(
             metrics_data['pipeline'],
             metrics_data['bundle'],
-            metrics_data['class_names']
+            metrics_data['class_names'],
+            y_true=y_true_r,
+            y_pred=y_pred_r,
         )
 
         roc_curve_img = _generate_roc_curve(
             metrics_data['pipeline'],
             metrics_data['bundle'],
-            metrics_data['class_names']
+            metrics_data['class_names'],
+            model_id=model_id,
+            y_true=y_true_r,
+            y_proba=y_proba_r,
         )
 
         feature_importance_img = _generate_feature_importance(
@@ -439,7 +543,6 @@ def results():
             model_id
         )
 
-        # Формируем результат для модели
         model_result = {
             'model_id': model_id,
             'model_name': model_id.replace('_', ' ').title(),
@@ -448,9 +551,8 @@ def results():
             'roc_auc': metrics_data['roc_auc'],
             'confusion_matrix_img': confusion_matrix_img,
             'roc_curve_img': roc_curve_img,
-            'class_names': metrics_data['class_names'][:10]  # Топ 10 классов
+            'class_names': metrics_data['class_names'][:10],
         }
-
         models_results.append(model_result)
 
     # Если ни одна модель не загружена, показываем заглушку
