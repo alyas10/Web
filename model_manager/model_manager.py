@@ -189,9 +189,14 @@ class ModelManager:
         # Данные при обучении были предварительно закодированы в числа;
         # принудительно конвертируем строковые/категориальные колонки в float
         if algo in ("lightgbm","xgboost", "random_forest", "isolation_forest"):
-            for col in result.columns:
-                if result[col].dtype == object or hasattr(result[col].dtype, 'categories'):
-                    result[col] = pd.to_numeric(result[col], errors='coerce').fillna(0)
+            if algo == "lightgbm":
+                result.columns = [re.sub(r'[^A-Za-z0-9_]', '_', c) for c in result.columns]
+                # Убираем дубликаты колонок, оставляя первое вхождение
+                result = result.loc[:, ~result.columns.duplicated()]
+                # Конвертируем все строковые/категориальные колонки в числа
+            obj_cols = result.select_dtypes(include=['object', 'category']).columns
+            for col in obj_cols:
+                result[col] = pd.to_numeric(result[col], errors='coerce').fillna(0)
 
         return result
 
