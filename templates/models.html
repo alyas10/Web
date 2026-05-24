@@ -495,6 +495,176 @@ select.input-field {
         max-width: 95%;
     }
 }
+
+.workflow-section {
+    max-width: 1200px;
+    margin: 2.5rem auto 0;
+    padding: 0 2rem 2.5rem;
+}
+
+.workflow-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 1.5rem;
+}
+
+/* Строка шагов */
+.workflow-track {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    scrollbar-width: none;
+}
+.workflow-track::-webkit-scrollbar { display: none; }
+
+/* Карточка шага */
+.wf-step {
+    flex: 1;
+    min-width: 160px;
+    max-width: 240px;
+    background: #1f2937;
+    border: 2px solid #374151;
+    border-radius: 0.875rem;
+    padding: 1.25rem 1rem 1rem;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.25s ease;
+}
+
+.wf-step:hover {
+    transform: translateY(-3px);
+    border-color: #4b5563;
+}
+
+.wf-step.active {
+    border-color: #2196F3;
+    box-shadow: 0 0 0 1px rgba(33,150,243,0.3), 0 8px 24px rgba(33,150,243,0.15);
+    background: #192333;
+}
+
+.wf-step.done {
+    border-color: #22c55e;
+    background: #111f16;
+}
+
+/* Иконка */
+.wf-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+    background: #111827;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.875rem;
+    transition: background 0.3s;
+}
+.wf-icon svg { width: 1.2rem; height: 1.2rem; color: #6b7280; transition: color 0.3s; }
+
+.wf-step.active .wf-icon { background: rgba(33,150,243,0.15); }
+.wf-step.active .wf-icon svg { color: #2196F3; }
+.wf-step.done   .wf-icon { background: rgba(34,197,94,0.15); }
+.wf-step.done   .wf-icon svg { color: #22c55e; }
+
+/* Номер */
+.wf-num {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #4b5563;
+    letter-spacing: 0.1em;
+    display: block;
+    margin-bottom: 0.2rem;
+    transition: color 0.3s;
+}
+.wf-step.active .wf-num { color: #2196F3; }
+.wf-step.done   .wf-num { color: #22c55e; }
+
+/* Заголовок и описание */
+.wf-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #e5e7eb;
+    margin: 0 0 0.3rem;
+}
+.wf-desc {
+    font-size: 0.75rem;
+    color: #6b7280;
+    line-height: 1.4;
+    margin: 0;
+}
+
+/* Прогресс-полоска снизу */
+.wf-progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    width: 0%;
+    background: linear-gradient(90deg, #2196F3, #60a5fa);
+    border-radius: 0 0 0.875rem 0.875rem;
+    transition: width linear;
+}
+.wf-step.active .wf-progress-bar { width: 100%; }
+.wf-step.done   .wf-progress-bar {
+    width: 100%;
+    background: linear-gradient(90deg, #22c55e, #4ade80);
+    transition: none;
+}
+
+/* Стрелка-разделитель */
+.wf-arrow {
+    flex-shrink: 0;
+    width: 48px;
+    opacity: 0.3;
+    transition: opacity 0.4s ease;
+    padding: 0 2px;
+}
+.wf-arrow.lit { opacity: 1; }
+
+/* Анимация пунктира */
+@keyframes dashMove {
+    to { stroke-dashoffset: -28; }
+}
+.wf-arrow.lit .wf-arrow-line {
+    animation: dashMove 0.8s linear infinite;
+    stroke-dashoffset: 0;
+}
+
+/* Навигационные точки */
+.wf-dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+}
+.wf-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: none;
+    background: #374151;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s, transform 0.2s;
+}
+.wf-dot.active {
+    background: #2196F3;
+    transform: scale(1.3);
+}
+.wf-dot:hover { background: #4b5563; }
+
+@media (max-width: 768px) {
+    .wf-step { min-width: 130px; padding: 1rem 0.75rem 1rem; }
+    .wf-label { font-size: 0.8rem; }
+    .wf-desc  { display: none; }
+    .wf-arrow { width: 32px; }
+}
 </style>
 
 <div class="page-container">
@@ -550,7 +720,119 @@ select.input-field {
         </div>
         {% endfor %}
     </div>
+
+
+<div class="workflow-section">
+    <h3 class="workflow-title">Как работает система</h3>
+
+    <div class="workflow-track">
+
+        <!-- Шаг 1 -->
+        <div class="wf-step" data-step="0">
+            <div class="wf-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12V4m0 0L8 8m4-4l4 4"/>
+                    <rect x="3" y="13" width="18" height="3" rx="1" stroke-width="1.5"/>
+                </svg>
+            </div>
+            <div class="wf-body">
+                <span class="wf-num">01</span>
+                <h4 class="wf-label">Загрузка данных</h4>
+                <p class="wf-desc">CSV или PCAP-файл с сетевым трафиком</p>
+            </div>
+            <div class="wf-progress-bar"></div>
+        </div>
+
+        <div class="wf-arrow" data-arrow="0">
+            <svg viewBox="0 0 48 16" fill="none">
+                <line class="wf-arrow-line" x1="0" y1="8" x2="40" y2="8"
+                      stroke="#2196F3" stroke-width="2" stroke-dasharray="4 3"/>
+                <polyline points="36,3 44,8 36,13" fill="none" stroke="#2196F3" stroke-width="2"
+                          stroke-linejoin="round" stroke-linecap="round"/>
+            </svg>
+        </div>
+
+        <!-- Шаг 2 -->
+        <div class="wf-step" data-step="1">
+            <div class="wf-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
+                </svg>
+            </div>
+            <div class="wf-body">
+                <span class="wf-num">02</span>
+                <h4 class="wf-label">Предобработка</h4>
+                <p class="wf-desc">Нормализация, очистка и кодирование признаков</p>
+            </div>
+            <div class="wf-progress-bar"></div>
+        </div>
+
+        <div class="wf-arrow" data-arrow="1">
+            <svg viewBox="0 0 48 16" fill="none">
+                <line class="wf-arrow-line" x1="0" y1="8" x2="40" y2="8"
+                      stroke="#2196F3" stroke-width="2" stroke-dasharray="4 3"/>
+                <polyline points="36,3 44,8 36,13" fill="none" stroke="#2196F3" stroke-width="2"
+                          stroke-linejoin="round" stroke-linecap="round"/>
+            </svg>
+        </div>
+
+        <!-- Шаг 3 -->
+        <div class="wf-step" data-step="2">
+            <div class="wf-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M12 2v2m0 16v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M2 12h2m16 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                </svg>
+            </div>
+            <div class="wf-body">
+                <span class="wf-num">03</span>
+                <h4 class="wf-label">Выбор модели</h4>
+                <p class="wf-desc">LightGBM, XGBoost, Random Forest или Isolation Forest</p>
+            </div>
+            <div class="wf-progress-bar"></div>
+        </div>
+
+        <div class="wf-arrow" data-arrow="2">
+            <svg viewBox="0 0 48 16" fill="none">
+                <line class="wf-arrow-line" x1="0" y1="8" x2="40" y2="8"
+                      stroke="#2196F3" stroke-width="2" stroke-dasharray="4 3"/>
+                <polyline points="36,3 44,8 36,13" fill="none" stroke="#2196F3" stroke-width="2"
+                          stroke-linejoin="round" stroke-linecap="round"/>
+            </svg>
+        </div>
+
+        <!-- Шаг 4 -->
+        <div class="wf-step" data-step="3">
+            <div class="wf-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+            </div>
+            <div class="wf-body">
+                <span class="wf-num">04</span>
+                <h4 class="wf-label">Результаты</h4>
+                <p class="wf-desc">Классификация угроз, метрики и визуализация</p>
+            </div>
+            <div class="wf-progress-bar"></div>
+        </div>
+
+    </div><!-- /.workflow-track -->
+
+    <!-- Точки навигации -->
+    <div class="wf-dots">
+        <button class="wf-dot active" data-goto="0" aria-label="Шаг 1"></button>
+        <button class="wf-dot"        data-goto="1" aria-label="Шаг 2"></button>
+        <button class="wf-dot"        data-goto="2" aria-label="Шаг 3"></button>
+        <button class="wf-dot"        data-goto="3" aria-label="Шаг 4"></button>
+    </div>
 </div>
+
+</div>
+
 {% include 'modals/_model_viz.html' %}
 
 </div>
