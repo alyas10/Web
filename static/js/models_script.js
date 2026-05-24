@@ -120,6 +120,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.vizPayload.importance = data.importance || null;
                 window.vizPayload.tree = data.tree || null;
 
+                // Скрываем вкладку Pipeline если модель — не sklearn Pipeline
+                const pipelineTab = document.querySelector('.viz-tab[data-tab="pipeline"]');
+                if (pipelineTab) {
+                    if (data.is_pipeline) {
+                        pipelineTab.style.display = '';
+                    } else {
+                        pipelineTab.style.display = 'none';
+                        // Если активна вкладка pipeline — переключаемся на importance
+                        if (pipelineTab.classList.contains('active')) {
+                            pipelineTab.classList.remove('active');
+                            const importanceTab = document.querySelector('.viz-tab[data-tab="importance"]');
+                            if (importanceTab) importanceTab.classList.add('active');
+                        }
+                    }
+                }
+
                 // 1. Загружаем график ТОЛЬКО активного таба (ленивая загрузка)
               const activeTab = document.querySelector('.viz-tab.active')?.dataset.tab;
 
