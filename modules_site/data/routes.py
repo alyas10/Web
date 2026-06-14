@@ -49,6 +49,7 @@ def data_upload():
     """Роут для страницы /data"""
     # Проверяем, есть ли session_id в запросе (после завершения обработки)
     session_id = request.args.get('session_id')
+    selected = request.args.get('selected')
 
     if session_id and session_id in processing_results:
         # Берем результаты из кэша
@@ -65,6 +66,19 @@ def data_upload():
             visualization_cards=results['visualization_cards'],
             data_summary=results['data_summary']
         )
+
+    if selected:
+        filename = secure_filename(selected)
+        filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+        if os.path.exists(filepath):
+            session['last_uploaded_filename'] = filename
+            return render_template('data_upload.html',
+                                   sample_data=SAMPLE_DATA,
+                                   uploaded_file={
+                                       'name': filename,
+                                       'size': os.path.getsize(filepath),
+                                       'session_id': None
+                                   })
 
     # Если session_id нет или результаты не найдены — показываем заглушки
     return render_template('data_upload.html', sample_data=SAMPLE_DATA, uploaded_file=None)
