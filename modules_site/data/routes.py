@@ -296,10 +296,8 @@ def select_file(filename):
     if not os.path.exists(filepath):
         return jsonify({'error': 'Файл не найден'}), 404
 
-    # Сохраняем выбранный файл в сессии
     session['last_uploaded_filename'] = filename
 
-    # Генерируем preview для отображения (опционально)
     try:
         from data_loader.csv_loader import CSVDataLoader
         from data_loader.pcap_loader import PcapScapyDataLoader
@@ -312,22 +310,38 @@ def select_file(filename):
         else:
             return jsonify({'error': f'Формат {ext} не поддерживается'}), 400
 
-        # Загружаем только первые 6 строк для превью
         raw_df = loader.load(filepath)
 
-        # Проверка на пустой DataFrame
         if raw_df.empty:
             return jsonify({'error': 'Файл не содержит данных'}), 400
 
-        # Для предпросмотра показываем сырые данные (как в файле)
         sample_data = raw_df.head(6).to_dict(orient='records')
         columns = raw_df.columns.tolist()
 
-        processed_df = current_app.data_adapter.prepare(raw_df)
+        # Генерируем визуализацию и сводку (как при загрузке)
+        visualizer = current_app.visualizer
+        visualization_cards_html = visualizer.generate_overview_plots(raw_df)
+        data_summary = visualizer.generate_data_summary(raw_df)
 
+        # Генерируем session_id и сохраняем полные данные в кэш
+        session_id = str(uuid.uuid4())
+        session_data = {
+            'sample_data': sample_data,
+            'columns': columns,
+            'visualization_cards': visualization_cards_html,
+            'data_summary': data_summary,
+            'uploaded_file_info': {
+                'name': filename,
+                'size': os.path.getsize(filepath),
+                'session_id': session_id
+            }
+        }
+        processing_results[session_id] = session_data
+        processing_progress[session_id] = 100
 
         return jsonify({
             'status': 'success',
+            'session_id': session_id,
             'filename': filename,
             'sample_data': sample_data,
             'columns': columns,
