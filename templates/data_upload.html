@@ -62,7 +62,7 @@
                 <p class="upload-subtitle">Поддерживаемые форматы: .csv, .pcap, .pcapng</p>
                 <label class="btn btn-secondary">
                     Выбрать файл
-                    <input type="file" name="file" id="fileInput" accept=".csv,.pcap,.pcapng" style="display: none;">
+                    <input type="file" name="file" id="fileInput" accept=".csv,.pcap,.pcapng" style="opacity: 0; position: absolute; width: 0; height: 0;">
                 </label>
             </div>
         </form>
@@ -279,12 +279,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
 const uploadZone = document.getElementById('uploadZone');
 const fileInput = document.getElementById('fileInput');
+const selectFileBtn = document.getElementById('selectFileBtn');
 const uploadForm = document.getElementById('uploadForm');
 const progressContainer = document.getElementById('progressContainer');
 const progressFill = document.getElementById('progressFill');
 const progressText = document.getElementById('progressText');
 
 let pollInterval = null;
+
+// Открыть диалог по кнопке...
+if (selectFileBtn) {
+    selectFileBtn.addEventListener('click', (e) => {
+        e.stopPropagation();      // чтобы клик не "всплыл" в uploadZone и диалог не открылся дважды
+        fileInput.click();
+    });
+}
+// ...и по клику в любом месте зоны
+if (uploadZone) {
+    uploadZone.addEventListener('click', () => {
+        fileInput.click();
+    });
+}
 
 // Функция для отправки файла через AJAX
 async function uploadFileWithProgress(file) {
@@ -447,13 +462,14 @@ async function loadUploadedFiles() {
 }
 
 // Функция для выбора файла
-async function selectFile(filename) {
+async function selectFile(filename, event) {
+    let btn = event ? event.target : null;
+    let originalText = btn ? btn.textContent : 'Выбрать';
     try {
-        // Показываем индикатор загрузки
-        const btn = event.target;
-        const originalText = btn.textContent;
-        btn.textContent = 'Загрузка...';
-        btn.disabled = true;
+        if (btn) {
+            btn.textContent = 'Загрузка...';
+            btn.disabled = true;
+        }
 
         const response = await fetch(`/data/select_file/${filename}`, {
             method: 'POST'
@@ -462,49 +478,9 @@ async function selectFile(filename) {
         const result = await response.json();
 
         if (result.status === 'success') {
-            // Обновляем интерфейс с данными выбранного файла
-            document.getElementById('progressContainer').style.display = 'none';
-
-            // Обновляем блок статуса файла
-            const fileStatus = document.querySelector('.file-status');
-            if (fileStatus) {
-                fileStatus.querySelector('.file-name span').textContent = result.file_info.name;
-                fileStatus.querySelector('.file-details').innerHTML =
-                    `Размер: ${result.file_info.size_mb} MB • Выбран для анализа`;
-            } else {
-                // Если блок статуса еще не создан, перезагружаем страницу с session_id
-                const sessionId = Date.now().toString();
-                sessionStorage.setItem('selectedFileData', JSON.stringify(result));
-                window.location.href = `/data?session_id=${sessionId}`;
-                return;
-            }
-
-
-            // Обновляем таблицу предпросмотра
-            if (result.sample_data && result.columns) {
-                 // Обновляем таблицу без перезагрузки
-                updateDataTable(result.columns, result.sample_data);
-            }
-
-             // Обновляем визуализацию если есть
-            if (result.visualization_cards) {
-                updateVisualization(result.visualization_cards);
-            }
-
-            // Обновляем характеристику датасета если есть
-            if (result.data_summary) {
-                updateDataSummary(result.data_summary);
-            }
-
-
-            // Активируем кнопку анализа
-            const analyzeBtn = document.querySelector('form[action*="start_analysis"] button');
-            if (analyzeBtn) {
-                analyzeBtn.disabled = false;
-                analyzeBtn.style.opacity = '1';
-                analyzeBtn.style.cursor = 'pointer';
-            }
-
+            // Просто редиректим на сервер с session_id из ответа
+            window.location.href = `/data?session_id=${result.session_id}`;
+            return;
         } else {
             throw new Error(result.error || 'Неизвестная ошибка');
         }
@@ -512,14 +488,13 @@ async function selectFile(filename) {
         console.error('Ошибка выбора файла:', error);
         alert('Ошибка: ' + error.message);
     } finally {
-        // Восстанавливаем кнопку
-        const btn = event.target;
         if (btn) {
-            btn.textContent = 'Выбрать';
+            btn.textContent = originalText;
             btn.disabled = false;
         }
     }
 }
+
 // Функция для удаления файла
 async function deleteFile(filename, btnElement) {
     if (!confirm(`Вы уверены, что хотите удалить файл "${filename}"?`)) {
