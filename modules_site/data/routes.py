@@ -379,7 +379,10 @@ def start_analysis():
         raw_df = loader.load(filepath)
 
         # 3. Подготовка данных под модель (добавит недостающие признаки нулями, уберет лишние)
-        processed_df = data_adapter.prepare(raw_df)
+        #processed_df = data_adapter.prepare(raw_df)
+        for label_col in ('Label', 'label', 'Class', 'class', 'Attack', 'attack'):
+            if label_col in raw_df.columns:
+                raw_df = raw_df.drop(columns=[label_col])
 
         # 4. Запускаем предсказание
         algo = request.form.get('algo', 'lightgbm')
@@ -388,7 +391,9 @@ def start_analysis():
         if algo not in model_manager.file_map:
             return jsonify({"error": f"Модель '{algo}' не поддерживается."}), 400
 
-        predictions = model_manager.predict(algo=algo, data=processed_df, env=env)
+        #predictions = model_manager.predict(algo=algo, data=processed_df, env=env)
+
+        predictions = model_manager.predict(algo=algo, data=raw_df, env=env)
 
         # 5. Формируем статистику
         total = len(predictions)
