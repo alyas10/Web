@@ -2,8 +2,12 @@
 
 {% block title %}Dashboard - ML Network Security{% endblock %}
 {% block extra_css %}
-<!-- Chart.js для интерактивных графиков -->
+{% if pdf_mode %}
+<!-- Локальный файл для PDF — CDN недоступен из wkhtmltopdf -->
+<script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
+{% else %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endif %}
 {% endblock %}
 {% block content %}
 <div class="page-container">
@@ -19,6 +23,19 @@
                 <p class="page-subtitle">Обзор системы обнаружения сетевых атак</p>
             </div>
         </div>
+        <!-- <a href="{{ url_for('dashboard.download_report_pdf') }}"
+           style="display:inline-flex;align-items:center;gap:0.5rem;
+                  padding:0.5rem 1.25rem;background:#1d4ed8;color:#fff;
+                  border-radius:0.5rem;font-size:0.875rem;font-weight:600;
+                  text-decoration:none;white-space:nowrap;transition:background 0.2s;"
+           onmouseover="this.style.background='#1e40af'"
+           onmouseout="this.style.background='#1d4ed8'">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
+            </svg>
+            Скачать PDF
+        </a> -->
     </div>
 
     <!-- ═══ INTERACTIVE DASHBOARDS ═══ -->
@@ -248,6 +265,12 @@
         </div>
     </div>
 </div>
+{% if pdf_mode and dashboard_json %}
+<script>
+  window.dashboardData = {{ dashboard_json | safe }};
+</script>
+{% endif %}
 <!-- Подключение скрипта интерактивных дашбордов -->
 <script src="{{ url_for('static', filename='js/dashboard_charts.js') }}"></script>
 {% endblock %}
+
