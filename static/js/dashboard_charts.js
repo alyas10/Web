@@ -27,8 +27,16 @@ class DashboardCharts {
    * Загрузка данных и инициализация
    */
   async loadAndInit() {
+    // Отключаем анимации если рендерим для PDF
+    const isPrint = window.matchMedia('print').matches ||
+                    navigator.userAgent.indexOf('wkhtmltopdf') !== -1;
+    if (isPrint) {
+      Chart.defaults.animation = false;
+      Chart.defaults.animations = {};
+      Chart.defaults.transitions = {};
+    }
+
     try {
-      // Пытаемся загрузить данные из session или API
       this.data = await this.fetchDashboardData();
 
       if (this.data) {
@@ -41,8 +49,16 @@ class DashboardCharts {
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       this.showErrorMessage(error.message);
+    } finally {
+      // сообщаем wkhtmltopdf, что рендеринг завершён
+      if (isPrint) {
+        // Небольшая задержка, чтобы Chart.js успел отрисовать canvas
+        setTimeout(() => {
+          window.status = 'ready_to_print';
+        }, 500);
+      }
     }
-  }
+}
 
   /**
    * Получение данных дашборда
@@ -129,6 +145,14 @@ class DashboardCharts {
     const element = document.getElementById(elementId);
     if (!element) return;
 
+    // Для PDF сразу выставляем финальное значение
+    const isPrint = window.matchMedia('print').matches ||
+                    navigator.userAgent.indexOf('wkhtmltopdf') !== -1;
+    if (isPrint) {
+      element.textContent = end.toLocaleString('ru-RU');
+      return;
+    }
+
     const range = end - start;
     const startTime = performance.now();
 
@@ -154,11 +178,23 @@ class DashboardCharts {
    * Инициализация всех графиков
    */
   initAllCharts() {
+    const isPrint = window.matchMedia('print').matches ||
+                    navigator.userAgent.indexOf('wkhtmltopdf') !== -1;
+
+    // Глобальные настройки для PDF
+    if (isPrint) {
+        Chart.defaults.animation.duration = 0;
+        Chart.defaults.animations = {};
+        Chart.defaults.transitions = {};
+        Chart.defaults.responsive = false;
+        Chart.defaults.maintainAspectRatio = false;
+    }
+
     this.initTrafficDonut();
     this.initModelComparison();
     this.initThreatHistory();
     this.initTopThreats();
-  }
+}
 
   /**
    * Donut chart: Распределение классов трафика
@@ -173,17 +209,46 @@ class DashboardCharts {
 
     // Цвета для классов
     const colors = {
-      'Benign': '#059669',
-      'DoS/DDoS': '#dc2626',
-      'Intrusion': '#f97316',
-      'Anomaly': '#eab308',
-      'Port Scan': '#8b5cf6',
-      'default': '#6b7280'
+      'benign':        '#059669',   // зелёный
+    'ddos':          '#dc2626',   // красный
+    'dos':           '#ef4444',   // светло-красный
+    'syn-flood':     '#b91c1c',   // тёмно-красный
+    'icmp-flood':    '#f87171',   // розово-красный
+    'port-scanning': '#ea580c',   // оранжевый
+    'ftp-attack':    '#0066cc',   // синий
+    'ftp-brute':     '#2563eb',   // ярко-синий
+    'ftp-brute-force': '#1d4ed8', // тёмно-синий
+    'ssh-brute':     '#7c3aed',   // фиолетовый
+    'ssh-brute-force': '#6d28d9', // тёмно-фиолетовый
+    'fuzzing':       '#a21caf',   // пурпурный
+    'arp-spoof':     '#d97706',   // янтарный
+    'sql-injection': '#b45309',   // коричневый
+    'xss':           '#92400e',   // тёмно-коричневый
+    'rce':           '#be123c',   // малиновый
+    'anomaly':       '#0891b2',   // циановый
+    'intrusion':     '#0369a1',   // тёмно-циановый
+     'default': '#6b7280'
     };
 
-    const backgroundColors = labels.map(label =>
-      colors[label] || colors['default']
-    );
+const backgroundColors = labels.map((label, idx) => {
+  // Прямое совпадение
+  if (colors[label]) return colors[label];
+
+  // Частичное совпадение (например "DoS" найдёт "DoS/DDoS")
+  for (const [key, color] of Object.entries(colors)) {
+    if (label.includes(key) || key.includes(label)) {
+      return color;
+    }
+  }
+
+  // Генерация уникального цвета для неизвестных атак
+  const extraColors = [
+    '#ef4444', '#f97316', '#f59e0b', '#84cc16',
+    '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6',
+    '#ec4899', '#f43f5e', '#a855f7', '#d946ef'
+  ];
+  return extraColors[idx % extraColors.length] || colors.default;
+});
 
     this.charts.donut = new Chart(ctx, {
       type: 'doughnut',
