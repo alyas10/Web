@@ -1,8 +1,12 @@
 # modules_site/dashboard/routes.py
-from flask import render_template, session, jsonify
+from flask import (render_template, session, request,
+                   jsonify, render_template_string, url_for)
 from . import bp  # Импортируем Blueprint из текущего пакета
 import json
 from pathlib import Path
+import tempfile
+import os
+import re
 
 # Глобальные объекты, которые использовались в app.py
 # Они будут доступны через app (см. app.py)
@@ -94,6 +98,112 @@ def dashboard():
         active_models=active_models,
     )
 
+
+@bp.route('/dashboard/download-pdf')
+def download_report_pdf():
+    """Скачивание дашборда в PDF через pdfkit (wkhtmltopdf)"""
+    try:
+        import pdfkit
+    except ImportError:
+        return "Библиотека pdfkit не установлена. Выполните: pip install pdfkit", 500
+
+    from flask import current_app, make_response
+    import json as _json
+    import time
+
+    t0 = time.time()
+    print(f"[PDF] Start generation at {t0}")
+
+    analysis_results = session.get('analysis_results')
+
+    # Строим dashboard_json (ваш существующий код)
+    if analysis_results:
+        total_events = analysis_results.get('rows', 0)
+        threats = analysis_results.get('threats', 0)
+        class_counts = analysis_results.get('class_counts', {})
+        benign_count = class_counts.get('Benign', class_counts.get('benign', 0))
+        safe_traffic = benign_count if benign_count > 0 else max(0, total_events - threats)
+        dashboard_json = _json.dumps({
+            'total_events': total_events,
+            'threats_detected': threats,
+            'safe_traffic': safe_traffic,
+            'model_used': analysis_results.get('model_used', 'Unknown'),
+            'is_demo': False,
+            'class_distribution': class_counts or {'Benign': safe_traffic},
+            'model_metrics': _get_model_metrics(),
+            'analysis_history': [{'date': analysis_results.get('timestamp', '')[:10], 'threats': threats}],
+            'top_threats': [{'type': t['type'], 'count': t['count']}
+                            for t in analysis_results.get('threat_distribution', [])
+                            if t.get('type', '').lower() != 'benign']
+        })
+    else:
+        dashboard_json = _json.dumps(_get_demo_dashboard_data())
+
+    t1 = time.time()
+    print(f"[PDF] Data prepared in {t1 - t0:.2f}s")
+
+    # Рендерим шаблон
+    html_content = render_template('dashboard.html',
+                                   stats=[], recent_analyses=[],
+                                   threat_distribution=[],
+                                   analysis_loaded=bool(analysis_results),
+                                   analysis_results=analysis_results,
+                                   active_models=[],
+                                   pdf_mode=True,
+                                   dashboard_json=dashboard_json)
+
+    t2 = time.time()
+    print(f"[PDF] Template rendered in {t2 - t1:.2f}s")
+
+
+    static_folder = Path(current_app.static_folder).resolve()
+    static_uri = static_folder.as_uri()
+
+    html_content = html_content.replace('"/static/', f'"{static_uri}/')
+    html_content = html_content.replace("'/static/", f"'{static_uri}/")
+    html_content = html_content.replace('=/static/', f'={static_uri}/')
+
+    t3 = time.time()
+    print(f"[PDF] Paths replaced in {t3 - t2:.2f}s")
+
+    # Оптимизированные options
+    options = {
+        'page-size': 'A4',
+        'encoding': 'UTF-8',
+        'no-outline': None,
+        'enable-local-file-access': None,  # Разрешаем доступ к локальным файлам
+        'javascript-delay': '5000',
+        'print-media-type': None,
+        'margin-top': '15mm',
+        'margin-bottom': '15mm',
+        'margin-left': '10mm',
+        'margin-right': '10mm',
+        #'window-status': 'ready_to_print',
+        'load-error-handling': 'ignore',
+        'load-media-error-handling': 'ignore',
+        'quiet': None,
+        'disable-smart-shrinking': None,  # Ускоряет рендеринг
+    }
+
+    config = pdfkit.configuration(wkhtmltopdf=r'D:\wkhtmltopdf\bin\wkhtmltopdf.exe')
+
+    try:
+        t4 = time.time()
+        print(f"[PDF] Starting wkhtmltopdf...")
+        pdf_bytes = pdfkit.from_string(html_content, False, options=options, configuration=config)
+        t5 = time.time()
+        print(f"[PDF] wkhtmltopdf completed in {t5 - t4:.2f}s")
+        print(f"[PDF] TOTAL: {t5 - t0:.2f}s")
+    except Exception as e:
+        t5 = time.time()
+        print(f"[PDF] ERROR after {t5 - t0:.2f}s: {e}")
+        return f"Ошибка генерации PDF: {e}", 500
+
+    response = make_response(pdf_bytes)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = 'attachment; filename="dashboard_report.pdf"'
+    return response
+
 @bp.route('/api/dashboard-data')
 def api_dashboard_data():
     """API endpoint для получения данных интерактивных дашбордов"""
@@ -109,10 +219,10 @@ def api_dashboard_data():
         safe_traffic = benign_count if benign_count > 0 else max(0, total_events - threats)
 
         # Распределение классов (если есть в результатах)
+        class_dist = analysis_results.get('threat_distribution', [])
         if class_counts:
             class_distribution = dict(class_counts)
         else:
-            class_dist = analysis_results.get('threat_distribution', [])
             class_distribution = {'Benign': safe_traffic}
             for item in class_dist:
                 class_distribution[item.get('type', 'Unknown')] = item.get('count', 0)
